@@ -1,0 +1,6 @@
+{
+  "buildCommand": "echo 'static: build artefak dengan ./gradlew make makePluginsJson lalu commit repo/'",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/repo/$1" }
+  ]
+}

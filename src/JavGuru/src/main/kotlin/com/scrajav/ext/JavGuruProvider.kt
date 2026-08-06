@@ -1,0 +1,139 @@
+package com.scrajav.ext
+
+import com.lagradost.cloudstream3.HomePageList
+import com.lagradost.cloudstream3.HomePageResponse
+import com.lagradost.cloudstream3.LoadResponse
+import com.lagradost.cloudstream3.MainAPI
+import com.lagradost.cloudstream3.MainPageRequest
+import com.lagradost.cloudstream3.SearchResponse
+import com.lagradost.cloudstream3.SearchResponseList
+import com.lagradost.cloudstream3.SubtitleFile
+import com.lagradost.cloudstream3.TvType
+import com.lagradost.cloudstream3.app
+import com.lagradost.cloudstream3.newHomePageResponse
+import com.lagradost.cloudstream3.newMovieLoadResponse
+import com.lagradost.cloudstream3.newMovieSearchResponse
+import com.lagradost.cloudstream3.toNewSearchResponseList
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.encodeUri
+import org.jsoup.Jsoup
+
+/**
+ * JAV.GURU — WordPress (GeneratePress). Probe live Agustus 2026:
+ * - Video URL : /{id}/{kode}-{slug}/
+ * - Player    : tombol `wp-btn-iframe` dengan `data-localize`; blok JS berisi
+ *   `iframe_url` base64 → halaman gateway `searcho/?xd={token}`.
+ *   Gateway: stream-box punya 3 atribut data-* → token = gabungan ketiganya →
+ *   player asli = `searcho/?xr={token-dibalik}` → m3u8.
+ * Ref: docs/01-riset-sumber-video.md §4
+ */
+class JavGuruProvider : MainAPI() {
+    override var name = "JavGuru"
+    override var mainUrl = "https://jav.guru"
+    override var lang = "en"
+    override val supportedTypes = setOf(TvType.NSFW)
+    override val hasMainPage = true
+
+    private fun req(url: String) = app.get(url, referer = mainUrl).text
+
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val items = parseListing(req(mainUrl))
+        return newHomePageResponse(listOf(HomePageList("Latest", items, false)), false)
+    }
+
+    override suspend fun search(query: String, page: Int): SearchResponseList? {
+        val url = "$mainUrl/?s=${query.encodeUri()}"
+        return parseListing(req(url)).toNewSearchResponseList()
+    }
+
+    override suspend fun load(url: String): LoadResponse? {
+        val doc = Jsoup.parse(req(url))
+        val title = doc.selectFirst("meta[property=og:title]")?.attr("content")
+            ?: doc.selectFirst("h1")?.text()
+            ?: url
+        val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
+            ?: doc.selectFirst(".large-screenimg img")?.attr("src")
+        val meta = doc.select(".infoleft li").mapNotNull { it.text().takeIf { t -> t.contains(":") } }
+        val code = Regex("/(\\d+)/([a-z0-9]+)-").find(url)?.groupValues?.getOrNull(2)?.uppercase()
+        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+            this.posterUrl = poster
+            this.plot = (code?.let { "Kode: $it\n" } ?: "") + meta.joinToString("\n")
+        }
+    }
+
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit,
+    ): Boolean {
+        val html = runCatching { req(data) }.getOrNull() ?: return false
+        var found = false
+
+        // 1) Gateway searcho dari tombol wp-btn-iframe (iframe_url base64).
+        val b64s = Regex("""iframe_url["']?\s*[:=]\s*["']([A-Za-z0-9+/=]{20,})["']""")
+            .findAll(html).map { it.groupValues[1] }.toList()
+        for (b64 in b64s) {
+            val decoded = decodeBase64(b64) ?: continue
+            if (decoded.contains("searcho")) {
+                found = resolveSearcho(decoded, callback) || found
+            }
+        }
+
+        // 2) Fallback: m3u8/mp4 langsung.
+        val direct = findM3u8OrMp4(html)
+        if (direct != null) {
+            callback(
+                if (direct.contains(".m3u8")) hlsLink(name, name, resolveUrl(data, direct), data)
+                else videoLink(name, name, resolveUrl(data, direct), data)
+            )
+            found = true
+        }
+        return found
+    }
+
+    /** Ikuti gateway searcho: baca cfg.keys + atribut data-* → buat player asli (?xr=). */
+    private suspend fun resolveSearcho(searchoUrl: String, callback: (ExtractorLink) -> Unit): Boolean {
+        val html = runCatching { app.get(searchoUrl, referer = mainUrl).text }.getOrNull() ?: return false
+
+        val base = html.firstMatch(Regex("""base:\s*'([^']+)'""")) ?: return false
+        val keys = html.firstMatch(Regex("""keys:\s*\[([^\]]+)\]"""))
+            ?.let { Regex("'([^']+)'").findAll(it).map { m -> m.groupValues[1] }.toList() }
+            ?: return false
+        if (keys.isEmpty()) return false
+
+        val box = html.firstMatch(Regex("""class="stream-box"([^>]*)""")) ?: return false
+        val token = keys.joinToString("") { key ->
+            Regex("""$key="([^"]+)"""").find(box)?.groupValues?.getOrNull(1) ?: ""
+        }
+        if (token.length < 8) return false
+
+        val realSrc = "$base?xr=${token.reversed()}"
+        val playerHtml = runCatching { app.get(realSrc, referer = searchoUrl).text }.getOrNull() ?: return false
+        val m = findM3u8OrMp4(playerHtml)
+        if (m != null) {
+            callback(
+                if (m.contains(".m3u8")) hlsLink(name, name, m, searchoUrl)
+                else videoLink(name, name, m, searchoUrl)
+            )
+            return true
+        }
+        return false
+    }
+
+    private fun parseListing(html: String): List<SearchResponse> {
+        val doc = Jsoup.parse(html, mainUrl)
+        val cardRe = Regex("^${Regex.escape(mainUrl)}/\\d+/[a-z0-9-]+/?$")
+        return doc.select("a[href]").mapNotNull { a ->
+            val abs = a.absUrl("href")
+            if (!cardRe.containsMatchIn(abs)) return@mapNotNull null
+            val img = a.selectFirst("img")
+            val title = a.attr("title").ifBlank { img?.attr("alt") }
+                ?.ifBlank { a.text() } ?: abs
+            newMovieSearchResponse(title, abs, TvType.NSFW) {
+                posterUrl = (img?.attr("data-src") ?: img?.attr("src"))
+                    ?.takeUnless { it.startsWith("data:") }
+            }
+        }.distinctBy { it.url }
+    }
+}
