@@ -15,7 +15,7 @@ import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.toNewSearchResponseList
 import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.encodeUri
+import com.lagradost.cloudstream3.utils.StringUtils.encodeUri
 import org.jsoup.Jsoup
 
 /**
@@ -32,7 +32,7 @@ open class DefbootBase : MainAPI() {
     override val supportedTypes = setOf(TvType.NSFW)
     override val hasMainPage = true
 
-    private fun req(url: String) = app.get(url, referer = mainUrl).text
+    private suspend fun req(url: String) = app.get(url, referer = mainUrl).text
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val items = scrapeCards("$mainUrl/")
@@ -83,7 +83,7 @@ open class DefbootBase : MainAPI() {
     }
 
     /** Parse kartu video /{id}/{code}-{slug}/ beserta poster. */
-    private fun scrapeCards(url: String): List<SearchResponse> {
+    private suspend fun scrapeCards(url: String): List<SearchResponse> {
         val html = runCatching { req(url) }.getOrNull() ?: return emptyList()
         val doc = Jsoup.parse(html, mainUrl)
         val cardRe = Regex("^${Regex.escape(mainUrl)}/\\d+/[a-z0-9-]+/?$")

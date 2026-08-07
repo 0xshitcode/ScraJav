@@ -16,11 +16,16 @@ fun String.firstMatch(re: Regex): String? = re.find(this)?.groupValues?.getOrNul
 
 fun String.allMatches(re: Regex): List<String> = re.findAll(this).map { it.groupValues[1] }.toList()
 
-/** Selesaikan URL relatif/root-relatif terhadap [base] (RFC 3986). */
-fun resolveUrl(base: String, url: String): String = try {
-    java.net.URL(base).resolve(url).toString()
-} catch (_: Exception) {
-    if (url.startsWith("http")) url else base.trimEnd('/') + "/" + url.trimStart('/')
+/** Selesaikan URL relatif/root-relatif terhadap [base]. */
+fun resolveUrl(base: String, url: String): String {
+    if (url.startsWith("http")) return url
+    val schemeHost = Regex("^https?://[^/]+").find(base)?.value
+        ?: return base.trimEnd('/') + "/" + url.trimStart('/')
+    return if (url.startsWith("/")) {
+        schemeHost + url
+    } else {
+        base.substringBeforeLast('/') + "/" + url.trimStart('/')
+    }
 }
 
 /** URL absolut pertama (m3u8 atau mp4) dalam HTML; fallback ke relatif. */
@@ -45,14 +50,14 @@ fun decodeBase64(s: String): String? = runCatching {
 
 // ---------- builder link ----------
 
-fun hlsLink(source: String, name: String, url: String, referer: String): ExtractorLink =
+suspend fun hlsLink(source: String, name: String, url: String, referer: String): ExtractorLink =
     newExtractorLink(source, name, url, ExtractorLinkType.M3U8) {
         quality = Qualities.Unknown.value
         this.referer = referer
         headers = mapOf("Referer" to referer, "User-Agent" to USER_AGENT)
     }
 
-fun videoLink(source: String, name: String, url: String, referer: String): ExtractorLink =
+suspend fun videoLink(source: String, name: String, url: String, referer: String): ExtractorLink =
     newExtractorLink(source, name, url, ExtractorLinkType.VIDEO) {
         quality = Qualities.Unknown.value
         this.referer = referer

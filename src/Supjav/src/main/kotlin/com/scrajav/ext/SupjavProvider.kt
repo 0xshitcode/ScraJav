@@ -15,7 +15,7 @@ import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.toNewSearchResponseList
 import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.encodeUri
+import com.lagradost.cloudstream3.utils.StringUtils.encodeUri
 import org.jsoup.Jsoup
 
 /**
@@ -40,7 +40,7 @@ class SupjavProvider : MainAPI() {
     // Backend API stream — bisa berubah; jadikan config.
     internal var streamApiHost = "https://lk1.supremejav.com"
 
-    private fun req(url: String) = app.get(url, referer = mainUrl).text
+    private suspend fun req(url: String) = app.get(url, referer = mainUrl).text
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val items = parseListing(req("$mainUrl/popular?sort=day"))
