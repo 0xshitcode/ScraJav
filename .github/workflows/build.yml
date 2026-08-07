@@ -52,6 +52,8 @@ jobs:
           cd $GITHUB_WORKSPACE/builds
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
+          # PAT user (secret GH_PUSH_TOKEN) — GITHUB_TOKEN di repo ini read-only.
+          git remote set-url origin https://x-access-token:${{ secrets.GH_PUSH_TOKEN }}@github.com/0xshitcode/ScraJav.git
           git add .
           git commit --amend -m "Build $GITHUB_SHA" || exit 0   # tidak error jika tidak ada perubahan
           git push --force
