@@ -6,6 +6,9 @@ on:
       - main
     paths-ignore:
       - '*.md'
+      - '*.cs3'
+      - 'plugins.json'
+      - 'repo.json'
   workflow_dispatch:
 
 jobs:
@@ -15,21 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          path: "src"
           persist-credentials: false
-
-      - name: Checkout builds
-        uses: actions/checkout@v4
-        with:
-          ref: "builds"
-          path: "builds"
-          persist-credentials: false
-
-      - name: Clean old builds
-        run: |
-          rm -f $GITHUB_WORKSPACE/builds/*.cs3
-          rm -f $GITHUB_WORKSPACE/builds/plugins.json
-          rm -f $GITHUB_WORKSPACE/builds/repo.json
 
       - name: Setup JDK 17
         uses: actions/setup-java@v1
@@ -41,24 +30,23 @@ jobs:
 
       - name: Build Plugins
         run: |
-          cd $GITHUB_WORKSPACE/src
           chmod +x gradlew
           ./gradlew make makePluginsJson
-          cp src/*/build/*.cs3 $GITHUB_WORKSPACE/builds
-          cp build/plugins.json $GITHUB_WORKSPACE/builds
-          cd $GITHUB_WORKSPACE/builds
-          printf '%s' '{ "name": "ScraJav", "description": "ScraJav extension repository", "manifestVersion": 1, "pluginLists": ["https://raw.githubusercontent.com/0xshitcode/ScraJav/builds/plugins.json"] }' > repo.json
+          cp src/*/build/*.cs3 .
+          cp build/plugins.json .
+          # Single-branch: arahkan URL plugin ke branch main
+          sed -i 's|/builds/|/main/|g' plugins.json
+          printf '%s' '{ "name": "ScraJav", "description": "ScraJav extension repository", "manifestVersion": 1, "pluginLists": ["https://raw.githubusercontent.com/0xshitcode/ScraJav/main/plugins.json"] }' > repo.json
 
-      - name: Push builds
+      - name: Push artifacts ke main
         env:
           PUSH_TOKEN: ${{ secrets.GH_PUSH_TOKEN }}
         run: |
-          cd $GITHUB_WORKSPACE/builds
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          # Matikan semua credential helper — hanya PAT (GH_PUSH_TOKEN) yang dipakai.
           git config --local credential.helper ""
           git remote set-url origin https://x-access-token:${PUSH_TOKEN}@github.com/0xshitcode/ScraJav.git
-          git add .
-          git commit --amend -m "Build $GITHUB_SHA" || exit 0   # tidak error jika tidak ada perubahan
-          git push --force
+          git add -A
+          # [skip ci] mencegah loop: push artefak tidak memicu workflow lagi
+          git commit -m "Build $GITHUB_SHA [skip ci]" || exit 0
+          git push

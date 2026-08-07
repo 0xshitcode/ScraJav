@@ -1,0 +1,268 @@
+[
+    {
+        "fileHash": "sha256-f9b67369af23081a51bfe637f927133cfa17568cb3316ac76ca0e06d0a7dfcdc",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 32156,
+        "status": 3,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "Av123",
+        "description": "JAV streaming dari 123av.com (agregator Mandarin \u2014 best-effort)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Av123.cs3",
+        "name": "Av123"
+    },
+    {
+        "fileHash": "sha256-e500d9579d3adb60f9cb2ef387224a01a7a82725e37e5ef50bec1040f699ab90",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 27935,
+        "status": 1,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "JavBraze",
+        "description": "JAV streaming dari javbraze.com (turbovid/cloudwish)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/JavBraze.cs3",
+        "name": "JavBraze"
+    },
+    {
+        "fileHash": "sha256-7f611bee245398604db16e315b2561396a8b042f3742fc535a89d004d0d5d23b",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 31937,
+        "status": 1,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "Javgg",
+        "description": "JAV streaming dari javgg.net (WordPress DooPlayer, multi embed)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Javgg.cs3",
+        "name": "Javgg"
+    },
+    {
+        "fileHash": "sha256-3c1404e12c23b829d02636b6a679ff30d0a5636233f155984f939f8baa39498f",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 36746,
+        "status": 2,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "JavGuru",
+        "description": "JAV streaming dari jav.guru (WordPress + gateway player)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/JavGuru.cs3",
+        "name": "JavGuru"
+    },
+    {
+        "fileHash": "sha256-52a94871d3fd364812c2a34dafd31f742fd548b7403b91552288b51e3b76dfb2",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 27946,
+        "status": 2,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "JavHd",
+        "description": "JAV streaming dari javhd.today (turbovid/cloudwish)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/JavHd.cs3",
+        "name": "JavHd"
+    },
+    {
+        "fileHash": "sha256-1355ee1caf76fb15cd3bec86cde99546b4ab5cd607125f54443765f53c2c7fc5",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 31935,
+        "status": 2,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "JavMit",
+        "description": "JAV streaming dari javmit.com (WordPress, multi embed)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/JavMit.cs3",
+        "name": "JavMit"
+    },
+    {
+        "fileHash": "sha256-ac62e0a48918cdb2e47351e91990f04b315ed85b3bf1057deb655ece708272aa",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 33450,
+        "status": 2,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "JavMost",
+        "description": "JAV streaming dari javmost.ws (listing API showlist2)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/JavMost.cs3",
+        "name": "JavMost"
+    },
+    {
+        "fileHash": "sha256-491ee4ff50f3317855220ccb6f486a513f56238fd01a9b28426d668deef65d12",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 27940,
+        "status": 2,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "JavSeen",
+        "description": "JAV streaming dari javseen.tv (turbovid/cloudwish)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/JavSeen.cs3",
+        "name": "JavSeen"
+    },
+    {
+        "fileHash": "sha256-d983d0368bf6504c8f0b9a56eeb013329bed9537300f10ee585fe786703c9e71",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 34697,
+        "status": 1,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "JavTsunami",
+        "description": "JAV streaming dari javtsunami.com (WordPress, embed player)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/JavTsunami.cs3",
+        "name": "JavTsunami"
+    },
+    {
+        "fileHash": "sha256-9dab56e9bbed2122f5d9eb243c1afc9e3cc3cb631857d8119062adfb2896d5f7",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 31985,
+        "status": 3,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "Missav",
+        "description": "JAV streaming dari missav.live (JS-rendered + CF \u2014 best-effort)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Missav.cs3",
+        "name": "Missav"
+    },
+    {
+        "fileHash": "sha256-48eefda9a900d01d746ca17673daa894e342fe7efdcf3eb654f01aa9e644cb51",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 33173,
+        "status": 1,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "Omgjav",
+        "description": "JAV streaming dari omgjav.com (listing, detail, m3u8 langsung)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Omgjav.cs3",
+        "name": "Omgjav"
+    },
+    {
+        "fileHash": "sha256-3d4f6adf5f98b4c2a8c9989b1b66deffb0f7a6b5cb70eec59284783514c61195",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 31953,
+        "status": 2,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "Roshy",
+        "description": "JAV streaming dari roshy.tv (WordPress, multi embed)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Roshy.cs3",
+        "name": "Roshy"
+    },
+    {
+        "fileHash": "sha256-c0e4b2c725324d5e606f0dbd6de8f594f922a7e46e3f1348a91b9c631e921d98",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 32043,
+        "status": 3,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "Sextb",
+        "description": "JAV streaming dari sextb.cc (CF-protected \u2014 best-effort)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Sextb.cs3",
+        "name": "Sextb"
+    },
+    {
+        "fileHash": "sha256-85ca0a1be198b23227959004d7d786fefbf96537925d2ba665394f23b76dbbfc",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
+        "fileSize": 33803,
+        "status": 3,
+        "language": "id",
+        "authors": [
+            "ScraJav"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "Supjav",
+        "description": "JAV streaming dari supjav.com (CF Turnstile \u2014 best-effort)",
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Supjav.cs3",
+        "name": "Supjav"
+    }
+]

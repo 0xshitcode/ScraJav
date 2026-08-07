@@ -7,8 +7,8 @@ Kumpulan **provider JAV** untuk aplikasi [CloudStream](https://github.com/reclou
 ## ➕ Cara pakai
 
 1. Buka aplikasi **CloudStream** → **Settings** → **Extensions** → **+ Add repository**.
-2. Masukkan URL repo (bila sudah di-deploy, mis. `https://scrajav.vercel.app/`).
-   - Sebelum deploy, tambahkan URL dari `repo.json` di folder `repo/`.
+2. Masukkan URL repository: `https://raw.githubusercontent.com/0xshitcode/ScraJav/main/`
+   (artefak di branch `main` dihasilkan otomatis oleh GitHub Actions).
 3. Install provider yang diinginkan (aktifkan **NSFW** di pengaturan bila diminta).
 4. Provider muncul di tab **Home / Search**.
 
@@ -30,16 +30,17 @@ export JAVA_HOME=$HOME/tools/jdk17
 export PATH=$HOME/tools/jdk17/bin:$PATH
 
 ./gradlew make makePluginsJson          # hasil: src/*/build/*.cs3 + build/plugins.json
-# artefak repo untuk deploy:
-mkdir -p repo && cp **/build/*.cs3 repo/ && cp build/plugins.json repo/
-cp repo.json.template repo/repo.json     # sesuaikan URL pluginLists
+# artefak repo untuk hosting statis (opsional, bila tidak memakai CI):
+mkdir -p repo && cp src/*/build/*.cs3 repo/ && cp build/plugins.json repo/
+printf '%s' '{ "name": "ScraJav", "description": "ScraJav extension repository", "manifestVersion": 1, "pluginLists": ["https://raw.githubusercontent.com/0xshitcode/ScraJav/main/plugins.json"] }' > repo/repo.json
 ```
 
-## 🚀 Deploy ke Vercel
+## 🚀 Rilis
 
-- `vercel.json` sudah disiapkan: Vercel menyajikan folder `repo/` di root URL.
-- Alur: bangun `.cs3`/`plugins.json` secara lokal (atau GitHub Actions), commit ke `repo/`,
-  lalu hubungkan repo ke Vercel. URL deploy = URL repository CloudStream.
+- GitHub Actions (`.github/workflows/build.yml`) membangun semua modul
+  (`./gradlew make makePluginsJson`) lalu commit `.cs3` + `plugins.json` + `repo.json`
+  ke branch `main` (single-branch — tanpa branch artefak terpisah).
+- URL repository CloudStream: `https://raw.githubusercontent.com/0xshitcode/ScraJav/main/`
 
 ## 📊 Status Provider (Agustus 2026, probe live dari jaringan rumah)
 
