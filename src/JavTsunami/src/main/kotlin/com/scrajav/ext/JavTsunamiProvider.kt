@@ -55,8 +55,8 @@ class JavTsunamiProvider : MainAPI() {
         val date = doc.selectFirst("meta[itemprop=uploadDate]")?.attr("content")?.take(10)
         return newMovieLoadResponse(title, url, TvType.NSFW, embed ?: url) {
             this.posterUrl = poster
-            this.genres = genres
-            this.date = date
+            this.tags = genres
+            this.year = date?.take(4)?.toIntOrNull()
         }
     }
 
