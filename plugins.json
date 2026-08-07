@@ -1,9 +1,9 @@
 [
     {
-        "fileHash": "sha256-629364032cf19328c4e96d709e7b232a18c512d4c49b1f982d9195eec828b548",
+        "fileHash": "sha256-2bdb749f0c8ed1a08bf00016ecc79ffe2f262a651f41b634992c2184f291bbfa",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 42857,
+        "fileSize": 42855,
         "status": 3,
         "language": "id",
         "authors": [
@@ -13,10 +13,10 @@
             "NSFW"
         ],
         "version": 1,
-        "internalName": "Av123",
+        "internalName": "123AV",
         "description": "JAV streaming dari 123av.com (agregator Mandarin \u2014 best-effort)",
-        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Av123.cs3",
-        "name": "Av123"
+        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/123AV.cs3",
+        "name": "123AV"
     },
     {
         "fileHash": "sha256-18dc7f6bf97825085925e50d2c8d9fdb522e8d95c9ad38b7c070af0877bb9a96",
