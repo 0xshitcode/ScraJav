@@ -13,15 +13,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           path: "src"
+          persist-credentials: false
 
       - name: Checkout builds
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "builds"
           path: "builds"
+          persist-credentials: false
 
       - name: Clean old builds
         run: |
@@ -54,9 +56,8 @@ jobs:
           cd $GITHUB_WORKSPACE/builds
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          # Hapus Authorization header GITHUB_TOKEN (read-only) dari actions/checkout
-          # yang menimpa kredensial PAT di URL. PAT user dipakai untuk push.
-          git config --local --unset-all http.https://github.com/.extraheader || true
+          # Matikan semua credential helper — hanya PAT (GH_PUSH_TOKEN) yang dipakai.
+          git config --local credential.helper ""
           git remote set-url origin https://x-access-token:${PUSH_TOKEN}@github.com/0xshitcode/ScraJav.git
           git add .
           git commit --amend -m "Build $GITHUB_SHA" || exit 0   # tidak error jika tidak ada perubahan
