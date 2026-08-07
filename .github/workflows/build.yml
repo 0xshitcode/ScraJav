@@ -1,14 +1,8 @@
 name: Build
 
+# Build hanya via workflow_dispatch manual — semua build rutin dilakukan
+# lokal (./gradlew make makePluginsJson) agar tidak bentrok dengan artefak.
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '*.md'
-      - '*.cs3'
-      - 'plugins.json'
-      - 'repo.json'
   workflow_dispatch:
 
 jobs:
