@@ -60,31 +60,41 @@ class JavGuruProvider : MainAPI() {
         val info = parseInfo(doc)
         val code = Regex("/(\\d+)/([a-z0-9]+)-").find(url)?.groupValues?.getOrNull(2)?.uppercase()
             ?: extractJavCode(title)
-        val year = info["Release Date"]?.take(4)?.toIntOrNull()
+        val year = info.infoValue("Release Date", "发布日期")?.take(4)?.toIntOrNull()
+        val actress = info.infoValue("Actress", "Actresses", "Cast", "演员", "女演员")
+        val studio = info.infoValue("Studio", "Maker", "制作人")
+        val director = info.infoValue("Director", "导演")
+        val tags = info.infoValue("Tags", "Category", "标签", "类型")
+            ?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }
 
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
-            this.tags = (info["Tags"] ?: info["Category"]).orEmpty()
-                .split(",").map { it.trim() }.filter { it.isNotBlank() }.ifEmpty { null }
+            this.tags = tags?.ifEmpty { null }
             this.year = year
             this.plot = buildList {
                 code?.let { add("Kode: $it") }
-                info["Actress"]?.let { if (it.isNotBlank()) add("Aktris: $it") }
-                info["Studio"]?.let { if (it.isNotBlank()) add("Studio: $it") }
-                info["Release Date"]?.let { if (it.isNotBlank()) add("Rilis: $it") }
-                info["Director"]?.let { if (it.isNotBlank()) add("Sutradara: $it") }
+                actress?.let { if (it.isNotBlank()) add("Aktris: $it") }
+                studio?.let { if (it.isNotBlank()) add("Studio: $it") }
+                info.infoValue("Release Date")?.let { if (it.isNotBlank()) add("Rilis: $it") }
+                director?.let { if (it.isNotBlank()) add("Sutradara: $it") }
             }.joinToString("\n").ifBlank { code?.let { "Kode: $it" } }
         }.also { (it as? MovieLoadResponse)?.enrichGlobal() }
     }
 
-    /** Parse baris infoleft → peta label → nilai teks (a[href] dipakai utk nilai). */
+    /**
+     * Parse baris infoleft → peta label → nilai teks (a[href] dipakai utk nilai).
+     * Key dinormalisasi (lowercase) agar "Studio Label"/"Actresses" dst. tetap cocok.
+     */
     private fun parseInfo(doc: org.jsoup.nodes.Document): Map<String, String> =
         doc.select("li").mapNotNull { li ->
             val strong = li.selectFirst("strong")?.text()?.trimEnd(':', ' ') ?: return@mapNotNull null
             val value = li.select("a").map { it.text().trim() }.filter { it.isNotBlank() }
                 .joinToString(", ").ifBlank { li.ownText().trim().trimEnd(':') }
-            if (value.isBlank()) null else strong to value
+            if (value.isBlank()) null else strong.lowercase() to value
         }.toMap()
+
+    private fun Map<String, String>.infoValue(vararg labels: String): String? =
+        labels.mapNotNull { this[it.lowercase()] }.firstOrNull()?.takeIf { it.isNotBlank() }
 
     override suspend fun loadLinks(
         data: String,
@@ -118,7 +128,15 @@ class JavGuruProvider : MainAPI() {
         return found
     }
 
-    /** Ikuti gateway searcho: baca cfg.keys + atribut data-* → buat player asli (?xr=). */
+    /**
+     * Ikuti gateway searcho → player asli:
+     * 1. Baca cfg.keys + atribut data-* pada stream-box → token (gabungan urutan keys).
+     * 2. Player asli = `searcho/?xr={token-reversed}`.
+     * 3. `?xr=` me-redirect (302) ke `javclan.com/e/{hex-decode(reversed)}` yang berisi
+     *    packed JS dengan objek `links` = {hls2, hls3, hls4} → URL master m3u8.
+     *    hls2/hls3 absolut (premilkyway/handmadecraftstore), hls4 relatif ke javclan.
+     *    Multi-resolusi via [emitHls].
+     */
     private suspend fun resolveSearcho(searchoUrl: String, callback: (ExtractorLink) -> Unit): Boolean {
         val html = runCatching { app.get(searchoUrl, referer = mainUrl).text }.getOrNull() ?: return false
 
@@ -128,24 +146,60 @@ class JavGuruProvider : MainAPI() {
             ?: return false
         if (keys.isEmpty()) return false
 
-        val box = html.firstMatch(Regex("""class=\"stream-box\"([^>]*)""")) ?: return false
+        val box = html.firstMatch(Regex("""class="stream-box"([^>]*)""")) ?: return false
         val token = keys.joinToString("") { key ->
             Regex("""$key=\"([^\"]+)\"""").find(box)?.groupValues?.getOrNull(1) ?: ""
         }
         if (token.length < 8) return false
 
         val realSrc = "$base?xr=${token.reversed()}"
+
+        // ?xr= redirect (302) ke javclan.com/e/{hex-reversed}; pakai followRedirects
+        // default agar sampai ke halaman player, lalu ambil URL aktual untuk referer.
         val playerHtml = runCatching { app.get(realSrc, referer = searchoUrl).text }.getOrNull() ?: return false
-        val m = findM3u8OrMp4(playerHtml)
-        if (m != null) {
-            if (m.contains(".m3u8")) {
-                emitHls(name, name, m, searchoUrl, callback)
+
+        // Stream m3u8 bisa saja langsung ada (beberapa host), atau di dalam packed JS.
+        val all = StringBuilder(playerHtml)
+        unpackPackedWithRadix(playerHtml)?.let { all.append('\n').append(it) }
+
+        val links = resolveHlsLinks(all.toString())
+        var found = false
+        links.forEach { url ->
+            val abs = if (url.startsWith("http")) url else resolveUrl("https://javclan.com/", url)
+            if (abs.contains(".m3u8") || abs.contains("master")) {
+                emitHls(name, name, abs, "https://javclan.com/", callback)
             } else {
-                emitVideo(name, name, m, searchoUrl, callback)
+                emitVideo(name, name, abs, "https://javclan.com/", callback)
+            }
+            found = true
+        }
+        if (found) return true
+
+        // Fallback terakhir: m3u8/mp4 langsung di HTML (tanpa unpack).
+        val direct = findM3u8OrMp4(all.toString())
+        if (direct != null) {
+            val abs = resolveUrl("https://javclan.com/", direct)
+            if (abs.contains(".m3u8")) {
+                emitHls(name, name, abs, "https://javclan.com/", callback)
+            } else {
+                emitVideo(name, name, abs, "https://javclan.com/", callback)
             }
             return true
         }
         return false
+    }
+
+    /** Ekstrak URL stream dari objek `links` (hls2/hls3/hls4) pada JS player. */
+    private fun resolveHlsLinks(js: String): List<String> {
+        val out = LinkedHashSet<String>()
+        Regex("""["'](hls2|hls3|hls4|hls)["']\s*:\s*["']([^"']+)["']""").findAll(js).forEach {
+            out.add(it.groupValues[2])
+        }
+        // Fallback: URL m3u8/mp4 absolut apa pun.
+        if (out.isEmpty()) {
+            out.addAll(js.allMatches(Regex("""(https?://[^"'\s<>]+?\.(?:m3u8|mp4|txt)[^"'\s<>]*?)""")))
+        }
+        return out.toList()
     }
 
     private fun parseListing(html: String): List<SearchResponse> {

@@ -20,9 +20,12 @@ import com.lagradost.cloudstream3.utils.StringUtils.encodeUri
 import org.jsoup.Jsoup
 
 /**
- * ROSHY.TV — WordPress. Pola video /{kode}-{slug}/ (probe live Agustus 2026:
- * stack WordPress, homepage + search tersedia). Player: ikuti iframe embed
- * → m3u8/mp4, fallback extractor bawaan CloudStream.
+ * ROSHY.TV — WordPress. Probe live Agustus 2026:
+ * - Video URL : /video/{id}-{kode}-{slug}/ (id acak atau kode-awal).
+ * - Home & search menyediakan kartu video statis (poster + title).
+ * - Penting: halaman video TIDAK punya player stream — hanya tombol
+ *   download (k2s.cc / nitroflare.com / uploadgig.com). loadLinks best-effort:
+ *   cek iframe & m3u8 langsung, kemungkinan besar kosong.
  */
 class RoshyProvider : MainAPI() {
     override var name = "Roshy"
@@ -49,7 +52,9 @@ class RoshyProvider : MainAPI() {
             ?: doc.selectFirst("h1")?.text()
             ?: url
         val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
-        val code = Regex("/([a-z0-9]{2,8}-\\d+)-").find(url)?.groupValues?.getOrNull(1)?.uppercase()
+        val code = Regex("(?:/[a-z0-9]+-)?([a-z0-9]{2,8}-\\d+)-").find(url)
+            ?.groupValues?.getOrNull(1)?.uppercase()
+            ?: extractJavCode(title)
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
             this.plot = code?.let { "Kode: $it" }
@@ -82,7 +87,7 @@ class RoshyProvider : MainAPI() {
 
     private fun parseListing(html: String): List<SearchResponse> {
         val doc = Jsoup.parse(html, mainUrl)
-        val cardRe = Regex("^${Regex.escape(mainUrl)}/[a-z0-9]{2,8}-\\d+")
+        val cardRe = Regex("^${Regex.escape(mainUrl)}/(video/)?[a-z0-9]{2,8}-\\d+")
         return doc.select("a[href]").mapNotNull { a ->
             val abs = a.absUrl("href")
             if (!cardRe.containsMatchIn(abs)) return@mapNotNull null

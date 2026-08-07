@@ -53,10 +53,23 @@ class MissavProvider : MainAPI() {
             ?: url
         val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
             ?: doc.selectFirst("video[data-poster]")?.attr("data-poster")
-        val code = Regex("/([A-Za-z0-9]{2,10}-\\d+)/?$").find(url)?.groupValues?.getOrNull(1)
+        val code = extractJavCode(url) ?: extractJavCode(title)
+        val durationSec = doc.selectFirst("meta[property=og:video:duration]")?.attr("content")?.toIntOrNull()
+        val release = doc.selectFirst("meta[property=og:video:release_date]")?.attr("content")
+        val genres = doc.selectFirst(".text-secondary")
+            ?.select("a[href*='/genres/']")?.mapNotNull { it.text().trim().ifBlank { null } }
+            ?: emptyList()
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
-            this.plot = code?.let { "Kode: $it" }
+            this.tags = genres.ifEmpty { null }
+            this.year = release?.take(4)?.toIntOrNull()
+            this.duration = durationSec
+            this.plot = buildList {
+                code?.let { add("Kode: $it") }
+                if (genres.isNotEmpty()) add("Genre: ${genres.joinToString(", ")}")
+                release?.let { if (it.isNotBlank()) add("Rilis: $it") }
+                durationSec?.let { if (it > 0) add("Durasi: ${it / 60} menit") }
+            }.joinToString("\n").ifBlank { code?.let { "Kode: $it" } }
         }.also { (it as? MovieLoadResponse)?.enrichGlobal() }
     }
 
@@ -88,10 +101,10 @@ class MissavProvider : MainAPI() {
 
     private fun parseListing(html: String): List<SearchResponse> {
         val doc = Jsoup.parse(html, mainUrl)
-        val cardRe = Regex("^${Regex.escape(mainUrl)}/[A-Za-z0-9]{2,10}-\\d+/?$")
+        // URL video missav: /dm{n}/id/{kode} (variabel domain + kode)
         return doc.select("a[href]").mapNotNull { a ->
             val abs = a.absUrl("href")
-            if (!cardRe.containsMatchIn(abs)) return@mapNotNull null
+            if (!Regex("/[A-Za-z0-9]{2,10}-\\d+/?$").containsMatchIn(abs)) return@mapNotNull null
             val img = a.selectFirst("img")
             newMovieSearchResponse(a.attr("title").ifBlank { a.text() }.ifBlank { abs }, abs, TvType.NSFW) {
                 posterUrl = (img?.attr("data-src") ?: img?.attr("src"))

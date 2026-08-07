@@ -9,6 +9,7 @@ import com.lagradost.cloudstream3.MovieLoadResponse
 import com.lagradost.cloudstream3.SearchResponse
 import com.lagradost.cloudstream3.SearchResponseList
 import com.lagradost.cloudstream3.SubtitleFile
+import com.lagradost.cloudstream3.TrailerData
 import com.lagradost.cloudstream3.TvType
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.newHomePageResponse
@@ -49,13 +50,47 @@ class OmgjavProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val doc = Jsoup.parse(req(url))
+        val html = runCatching { req(url) }.getOrNull() ?: return null
+        val doc = Jsoup.parse(html, url)
         val title = doc.selectFirst("meta[property=og:title]")?.attr("content") ?: url
         val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
         val code = Regex("/v/([^/?#]+)").find(url)?.groupValues?.getOrNull(1)
+
+        // Player JS tertanam berisi metadata lengkap (objek JS, bukan JSON murni).
+        val performers = html.allMatches(Regex("""performers\s*:\s*\[([^\]]*)\]"""))
+            .flatMap { Regex("""["']([^"']+)["']""").findAll(it).map { m -> m.groupValues[1] } }
+            .distinct()
+        val release = html.firstMatch(Regex("""releaseDate\s*:\s*"(\d{4}-\d{2}-\d{2})"""))
+        val maker = html.firstMatch(Regex("""maker\s*:\s*"([^"]+)""""))
+        val label = html.firstMatch(Regex("""label\s*:\s*"([^"]+)""""))
+        val director = html.firstMatch(Regex("""director\s*:\s*"([^"]+)""""))
+        val tags = html.firstMatch(Regex("""tags\s*:\s*\[([^\]]*)\]"""))
+            ?.let { Regex("""["']([^"']+)["']""").findAll(it).map { m -> m.groupValues[1] }.toList() }
+            ?: emptyList()
+        val durationSec = html.firstMatch(Regex("""duration\s*:\s*(\d+)"""))?.toIntOrNull()
+        val trailer = html.firstMatch(Regex("""timeline\s*:\s*\{[^}]*video\s*:\s*"([^"]+)""""))
+            ?: html.firstMatch(Regex("""timeline\s*:\s*\{[^}]*video\s*:\s*'([^']+)""""))
+        val preview = html.firstMatch(Regex("""preview\.webm""")) // penanda trailer webm
+
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
-            this.plot = code?.let { "Kode: $it" }
+            this.tags = tags.ifEmpty { null }
+            this.year = release?.take(4)?.toIntOrNull()
+            this.duration = durationSec
+            if (trailer != null || preview != null) {
+                val trailerUrl = trailer ?: html.firstMatch(Regex("""(https?://[^"'\s<>]+?\.(?:webm|mp4)[^"'\s<>]*)"""))
+                if (trailerUrl != null) {
+                    this.trailers = mutableListOf(TrailerData(trailerUrl, mainUrl, true, mapOf()))
+                }
+            }
+            this.plot = buildList {
+                code?.let { add("Kode: $it") }
+                if (performers.isNotEmpty()) add("Aktris: ${performers.joinToString(", ")}")
+                maker?.let { if (it.isNotBlank()) add("Maker: $it") }
+                label?.let { if (it.isNotBlank()) add("Label: $it") }
+                director?.let { if (it.isNotBlank()) add("Sutradara: $it") }
+                release?.let { if (it.isNotBlank()) add("Rilis: $it") }
+            }.joinToString("\n").ifBlank { code?.let { "Kode: $it" } }
         }.also { (it as? MovieLoadResponse)?.enrichGlobal() }
     }
 

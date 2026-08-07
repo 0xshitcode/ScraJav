@@ -33,10 +33,13 @@ open class DefbootBase : MainAPI() {
     override val supportedTypes = setOf(TvType.NSFW)
     override val hasMainPage = true
 
+    /** Path halaman daftar video terbaru; bisa di-override per situs. */
+    open val mainPagePath: String = "/"
+
     private suspend fun req(url: String) = app.get(url, referer = mainUrl).text
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val items = scrapeCards("$mainUrl/")
+        val items = scrapeCards("$mainUrl$mainPagePath")
         return newHomePageResponse(listOf(HomePageList("Latest", items, false)), false)
     }
 
@@ -51,10 +54,23 @@ open class DefbootBase : MainAPI() {
             ?: doc.selectFirst("meta[property=og:title]")?.attr("content")
             ?: url
         val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
-        val code = Regex("/(\\d+)/([a-z0-9]+)-").find(url)?.groupValues?.getOrNull(2)?.uppercase()
+        val code = Regex("/(\\d+)/([a-z0-9]{2,8}-\\d+)-").find(url)
+            ?.groupValues?.getOrNull(2)?.uppercase()
+        // Info rows javhd.today: "Release Day: 2014-10-24", "Studio: ...", "Director: ...", "Label: ..."
+        val infoRows = doc.select("div[style*='text-transform']").mapNotNull { el ->
+            val txt = el.text()
+            if (txt.contains(':')) txt.substringBefore(':').trim() to txt.substringAfter(':').trim()
+            else null
+        }
+        val year = infoRows.firstOrNull { it.first == "Release Day" }
+            ?.second?.take(4)?.toIntOrNull()
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
-            this.plot = code?.let { "Kode: $it" }
+            this.year = year
+            this.plot = buildList {
+                code?.let { add("Kode: $it") }
+                infoRows.forEach { (k, v) -> if (v.isNotBlank() && v != "----") add("$k: $v") }
+            }.joinToString("\n").ifBlank { code?.let { "Kode: $it" } }
         }.also { (it as? MovieLoadResponse)?.enrichGlobal() }
     }
 
@@ -66,8 +82,19 @@ open class DefbootBase : MainAPI() {
     ): Boolean {
         val html = runCatching { req(data) }.getOrNull() ?: return false
         var found = false
-        val embeds = Regex("playEmbed\\('([^']+)'\\)").findAll(html).map { it.groupValues[1] }.toList()
-        for (embed in embeds.distinct()) {
+        val embeds = LinkedHashSet<String>().apply {
+            // playEmbed('...') literal
+            addAll(Regex("playEmbed\\('([^']+)'\\)").findAll(html).map { it.groupValues[1] })
+            // playEmbed("...")
+            addAll(Regex("""playEmbed\("([^"]+)"\)""").findAll(html).map { it.groupValues[1] })
+            // data-embed="base64" (javhd.today pakai pola ini untuk 5 server)
+            addAll(Regex("""data-embed="([A-Za-z0-9+/=]+)"""").findAll(html).map {
+                decodeBase64(it.groupValues[1]) ?: ""
+            })
+            // iframe langsung di halaman (mis. /embed/{id}/)
+            addAll(Regex("""<iframe[^>]*src="([^"]+)"""").findAll(html).map { it.groupValues[1] })
+        }.filter { it.startsWith("http") || it.startsWith("/") }
+        for (embed in embeds) {
             val resolved = resolveUrl(data, embed)
             found = resolveEmbedGeneric(resolved, subtitleCallback, callback) || found
         }

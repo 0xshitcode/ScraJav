@@ -51,8 +51,8 @@ class JavggProvider : MainAPI() {
             ?: doc.selectFirst("h1")?.text()
             ?: url
         val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
-        val code = Regex("/jav/([a-z0-9-]+?)/?$", RegexOption.IGNORE_CASE)
-            .find(url)?.groupValues?.getOrNull(1)?.substringBefore("-")?.uppercase()
+        val code = Regex("/jav/([a-z0-9]{2,8}-\\d+)", RegexOption.IGNORE_CASE)
+            .find(url)?.groupValues?.getOrNull(1)?.uppercase()
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
             this.plot = code?.let { "Kode: $it" }

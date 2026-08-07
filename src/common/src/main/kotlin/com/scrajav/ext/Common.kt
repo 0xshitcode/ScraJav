@@ -33,17 +33,56 @@ fun resolveUrl(base: String, url: String): String {
 
 /** URL absolut pertama (m3u8 atau mp4) dalam HTML; fallback ke relatif. */
 fun findM3u8OrMp4(html: String): String? {
-    val absolute = html.firstMatch(Regex("""(https?://[^"'\s<>]+?\.(?:m3u8|mp4)[^"'\s<>]*?)"""))
+    val absolute = html.firstMatch(Regex("""(https?://[^"'\s<>]+?\.(?:m3u8|mp4)[^"'\s<>]*)"""))
     if (absolute != null) return absolute
-    return html.firstMatch(Regex("""([^"'\s<>]+?\.(?:m3u8|mp4)[^"'\s<>]*?)"""))
+    return html.firstMatch(Regex("""([^"'\s<>]+?\.(?:m3u8|mp4)[^"'\s<>]*)"""))
 }
 
 val PACKED_REGEX = Regex("""eval\(function\(p,a,c,k,e,d\)\{.*""", setOf(RegexOption.DOT_MATCHES_ALL))
 
-/** Buka kunci (unpack) script packed ala Dean Edwards (dipakai cloudwish/dll). */
+/** Buka kunci (unpack) script packed ala Dean Edwards (dipakai cloudwish/javclan dll). */
 fun unpackPacked(html: String): String? {
     val packed = PACKED_REGEX.find(html)?.value ?: return null
     return runCatching { getAndUnpack(packed) }.getOrNull()
+}
+
+/**
+ * Unpack packed JS ala Dean Edwards dengan dukungan radix (base) selain 10 —
+ * contoh javclan.com memakai base 36: `eval(function(p,a,c,k,e,d){...}('...',36,517,'...'.split('|'),0,{}))`.
+ * Mengembalikan teks hasil unpack, atau null bila pola tidak ditemukan.
+ */
+fun unpackPackedWithRadix(html: String): String? {
+    val m = Regex("""eval\(function\(p,a,c,k,e,d\)\{[\s\S]*?\}\('((?:[^'\\]|\\.)*)','?([^,']+)'?,'?([^,']+)'?,'((?:[^'\\]|\\.)*)'\.split\('\|'\)""")
+        .find(html) ?: return null
+    val p = m.groupValues[1]
+    val base = m.groupValues[2].trim().toIntOrNull() ?: return null
+    val count = m.groupValues[3].trim().toIntOrNull() ?: return null
+    val tokens = m.groupValues[4].split("|")
+    if (count > tokens.size) return null
+
+    fun encode(i: Int): String = when {
+        i < 10 -> i.toString()
+        base > 10 -> {
+            val sb = StringBuilder()
+            var n = i
+            while (n > 0) {
+                val d = n % base
+                sb.append(if (d < 10) ('0' + d) else ('a' + d - 10))
+                n /= base
+            }
+            sb.reverse().toString()
+        }
+        else -> i.toString()
+    }
+
+    var out = p
+    for (i in count - 1 downTo 0) {
+        val tok = tokens[i]
+        if (tok.isNotEmpty()) {
+            out = out.replace(Regex("\\b${Regex.escape(encode(i))}\\b"), tok)
+        }
+    }
+    return out
 }
 
 /** Decode base64 aman untuk minSdk 21 (java.util.Base64 baru API 26+). */
@@ -109,11 +148,15 @@ suspend fun emitVideo(
 private suspend fun parseMasterM3u8(masterUrl: String, referer: String): List<Pair<String, Int>> {
     val text = runCatching { app.get(masterUrl, referer = referer).text }.getOrNull() ?: return emptyList()
     if (!text.contains("#EXT-X-STREAM-INF")) return emptyList()
+    // Pisahkan baris info (#EXT-X-STREAM-INF:...) dari URI variant di bawahnya,
+    // lalu ambil RESOLUTION dari blok info agar label kualitas benar.
     val re = Regex(
-        """#EXT-X-STREAM-INF:[^\n]*?(?:RESOLUTION=(\d{2,5})x\d+)?[^\n]*\n\s*([^\s\n]+)"""
+        """#EXT-X-STREAM-INF:([^\n]*)\n\s*([^\s\n]+)"""
     )
     val out = re.findAll(text).map { m ->
-        val res = m.groupValues[1].toIntOrNull() ?: 0
+        val info = m.groupValues[1]
+        val res = Regex("RESOLUTION=(\\d{2,5})x\\d+").find(info)
+            ?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
         val raw = m.groupValues[2]
         val abs = if (raw.startsWith("http")) raw else resolveUrl(masterUrl, raw)
         abs to res
@@ -125,14 +168,51 @@ private suspend fun parseMasterM3u8(masterUrl: String, referer: String): List<Pa
 
 /**
  * Ikuti halaman embed (turbovid/etvp/cloudwish/earnvid dll) dan laporkan stream.
- * Urutan: m3u8/mp4 langsung di HTML -> unpack packed JS -> extractor bawaan CloudStream.
+ * Urutan: m3u8/mp4 langsung di HTML -> unpack packed JS -> embed berlapis
+ * (playEmbed / data-embed base64 / iframe) -> extractor bawaan CloudStream.
  * Stream m3u8 diproses dengan [emitHls] agar multi-resolusi tetap keluar.
  */
 suspend fun resolveEmbedGeneric(
     embedUrl: String,
     subtitleCallback: (SubtitleFile) -> Unit,
     callback: (ExtractorLink) -> Unit,
+): Boolean = resolveEmbedGenericDeep(embedUrl, subtitleCallback, callback, visited = mutableSetOf())
+
+/**
+ * Ekstrak daftar URL embed berlapis dari halaman embed (mis. mycloudz -> turbovid).
+ * Mengenal pola: playEmbed('...'), data-embed="base64", <iframe src="...">, dan
+ * atribut `data-src`/`src` yang menunjuk ke host embed umum.
+ */
+fun extractEmbedSources(html: String): List<String> {
+    val out = LinkedHashSet<String>()
+
+    html.allMatches(Regex("""playEmbed\(\s*['"]([^'"]+)['"]\s*\)""")).forEach { out.add(it) }
+    html.allMatches(Regex("""data-embed=["']([A-Za-z0-9+/=]+)["']""")).forEach {
+        decodeBase64(it)?.takeIf { s -> s.startsWith("http") }?.let { out.add(it) }
+    }
+    html.allMatches(Regex("""<iframe[^>]*src=["']([^"']+)["']""")).forEach { out.add(it) }
+    html.allMatches(Regex("""<video[^>]*src=["']([^"']+)["']""")).forEach { out.add(it) }
+    html.allMatches(Regex("""(?:src|data-src)=["'](https?://[^"']+)["']""")).forEach {
+        val host = Regex("^https?://([^/]+)").find(it)?.groupValues?.getOrNull(1).orEmpty()
+        val isMedia = it.endsWith(".m3u8") || it.endsWith(".mp4")
+        val isEmbedHost = listOf(
+            "turbovid", "cloudwish", "mycloudz", "streamtape", "earnvid",
+            "dood", "doodstream", "vidoza", "mp4upload", "filemoon", "embedy",
+            "hydrax", "streamlare", "upstream", "streamwish", "streamhub",
+        ).any { w -> host.contains(w) }
+        if (isMedia || isEmbedHost) out.add(it)
+    }
+
+    return out.toList()
+}
+
+private suspend fun resolveEmbedGenericDeep(
+    embedUrl: String,
+    subtitleCallback: (SubtitleFile) -> Unit,
+    callback: (ExtractorLink) -> Unit,
+    visited: MutableSet<String>,
 ): Boolean {
+    if (!visited.add(embedUrl)) return false
     val html = runCatching { app.get(embedUrl).text }.getOrNull() ?: return false
 
     val direct = findM3u8OrMp4(html)
@@ -158,6 +238,16 @@ suspend fun resolveEmbedGeneric(
         }
     }
 
+    // Embed berlapis: coba semua sumber turunan; gunakan yang pertama berhasil.
+    var found = false
+    extractEmbedSources(html).forEach { raw ->
+        val resolved = resolveUrl(embedUrl, raw)
+        if (!found) {
+            found = resolveEmbedGenericDeep(resolved, subtitleCallback, callback, visited)
+        }
+    }
+    if (found) return true
+
     return loadExtractor(embedUrl, subtitleCallback, callback)
 }
 
@@ -166,8 +256,8 @@ val String.host: String
 
 // ---------- kode JAV & metadata global ----------
 
-/** Pola kode JAV: SSIS-406, MIAA-001, IPZZ-904, 259LUXU-1894, dst. */
-val JAV_CODE_REGEX = Regex("""\b([A-Z0-9]{2,9}-\d{2,6})\b""")
+/** Pola kode JAV: SSIS-406, MIAA-001, IPZZ-904, 259LUXU-1894, dst. (case-insensitive). */
+val JAV_CODE_REGEX = Regex("""\b([A-Z0-9]{2,9}-\d{2,6})\b""", RegexOption.IGNORE_CASE)
 
 fun extractJavCode(text: String?): String? =
     text?.let { JAV_CODE_REGEX.find(it)?.groupValues?.getOrNull(1)?.uppercase() }

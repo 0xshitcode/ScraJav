@@ -5,6 +5,7 @@ import com.lagradost.cloudstream3.HomePageResponse
 import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.MainPageRequest
+import com.lagradost.cloudstream3.MovieLoadResponse
 import com.lagradost.cloudstream3.SearchResponse
 import com.lagradost.cloudstream3.SearchResponseList
 import com.lagradost.cloudstream3.SubtitleFile
@@ -58,10 +59,12 @@ class SupjavProvider : MainAPI() {
         val title = doc.selectFirst("meta[property=og:title]")?.attr("content") ?: url
         val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
         val id = Regex("(\\d+)\\.html").find(url)?.groupValues?.getOrNull(1)
+        val code = extractJavCode(title)
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
-            this.plot = id?.let { "SupJAV #$it" }
-        }
+            this.plot = code?.let { "Kode: $it" }
+                ?: id?.let { "SupJAV #$it" }
+        }.also { (it as? MovieLoadResponse)?.enrichGlobal() }
     }
 
     override suspend fun loadLinks(

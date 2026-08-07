@@ -51,8 +51,20 @@ class Av123Provider : MainAPI() {
             ?: doc.selectFirst("h1")?.text()
             ?: url
         val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
+            ?.takeUnless { it.contains("logo") }
+
+        // Format judul 123AV: "ABF-375 — judul... — Aktris — 123AV"
+        val code = extractJavCode(title) ?: Regex("/en/v/([^/?#]+)").find(url)
+            ?.groupValues?.getOrNull(1)?.uppercase()
+        val actress = title.substringAfter(" — ", "").substringBeforeLast(" — ")
+            ?.takeIf { it.isNotBlank() && it != "123AV" }
+
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
+            this.plot = buildList {
+                code?.let { add("Kode: $it") }
+                if (!actress.isNullOrBlank() && actress != title) add("Aktris: $actress")
+            }.joinToString("\n").ifBlank { code?.let { "Kode: $it" } }
         }.also { (it as? MovieLoadResponse)?.enrichGlobal() }
     }
 
