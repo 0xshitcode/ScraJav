@@ -14,7 +14,7 @@
         ],
         "version": 1,
         "internalName": "Av123",
-        "description": "JAV streaming dari 123av.com (agregator Mandarin — best-effort)",
+        "description": "JAV streaming dari 123av.com (agregator Mandarin \u2014 best-effort)",
         "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Av123.cs3",
         "name": "Av123"
     },
@@ -114,25 +114,6 @@
         "name": "JavMost"
     },
     {
-        "fileHash": "sha256-2a890da3752d3fe1af6b189fee694da1e25cffc297b2cbeb3b5206ba2295c8a1",
-        "apiVersion": 1,
-        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 35116,
-        "status": 2,
-        "language": "id",
-        "authors": [
-            "ScraJav"
-        ],
-        "tvTypes": [
-            "NSFW"
-        ],
-        "version": 1,
-        "internalName": "JavSeen",
-        "description": "JAV streaming dari javseen.tv (turbovid/cloudwish)",
-        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/JavSeen.cs3",
-        "name": "JavSeen"
-    },
-    {
         "fileHash": "sha256-969bd6023c62a522fc5c69b9337e24860a8154e5c8ecba13cee5a2682c20a043",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
@@ -166,7 +147,7 @@
         ],
         "version": 1,
         "internalName": "Missav",
-        "description": "JAV streaming dari missav.live (JS-rendered + CF — best-effort)",
+        "description": "JAV streaming dari missav.live (JS-rendered + CF \u2014 best-effort)",
         "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Missav.cs3",
         "name": "Missav"
     },
@@ -223,7 +204,7 @@
         ],
         "version": 1,
         "internalName": "Sextb",
-        "description": "JAV streaming dari sextb.cc (CF-protected — best-effort)",
+        "description": "JAV streaming dari sextb.cc (CF-protected \u2014 best-effort)",
         "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Sextb.cs3",
         "name": "Sextb"
     },
@@ -242,7 +223,7 @@
         ],
         "version": 1,
         "internalName": "Supjav",
-        "description": "JAV streaming dari supjav.com (CF Turnstile — best-effort)",
+        "description": "JAV streaming dari supjav.com (CF Turnstile \u2014 best-effort)",
         "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Supjav.cs3",
         "name": "Supjav"
     }
