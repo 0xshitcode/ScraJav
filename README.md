@@ -8,7 +8,7 @@ Kumpulan **provider JAV** untuk aplikasi [CloudStream](https://github.com/reclou
 
 1. Buka aplikasi **CloudStream** → **Settings** → **Extensions** → **+ Add repository**.
 2. Masukkan URL repository: `https://raw.githubusercontent.com/0xshitcode/ScraJav/main/`
-   (artefak di branch `main` dihasilkan otomatis oleh GitHub Actions).
+   (artefak `.cs3` + `plugins.json` di branch `main`).
 3. Install provider yang diinginkan (aktifkan **NSFW** di pengaturan bila diminta).
 4. Provider muncul di tab **Home / Search**.
 
@@ -37,9 +37,10 @@ printf '%s' '{ "name": "ScraJav", "description": "ScraJav extension repository",
 
 ## 🚀 Rilis
 
-- GitHub Actions (`.github/workflows/build.yml`) membangun semua modul
-  (`./gradlew make makePluginsJson`) lalu commit `.cs3` + `plugins.json` + `repo.json`
-  ke branch `main` (single-branch — tanpa branch artefak terpisah).
+- Artefak dibangun **lokal** (`./gradlew make makePluginsJson`) lalu `.cs3` + `plugins.json`
+  di-commit ke branch `main` (single-branch — tanpa branch artefak terpisah).
+- GitHub Actions (`.github/workflows/build.yml`) hanya dijalankan manual via
+  **Actions → Run workflow** (`workflow_dispatch`) — tidak otomatis per push.
 - URL repository CloudStream: `https://raw.githubusercontent.com/0xshitcode/ScraJav/main/`
 
 ## 📊 Status Provider (Agustus 2026, probe live dari jaringan rumah)
@@ -48,25 +49,21 @@ printf '%s' '{ "name": "ScraJav", "description": "ScraJav extension repository",
 |---|---|---|---|---|---|
 | 1 | OMGJAV | ✅ | ✅ | ✅ m3u8 | JSON `hosts[]` di halaman |
 | 2 | JavTsunami | ✅ | ✅ | ✅ m3u8 | WordPress, embedURL |
-| 3 | JavBraze | ✅ | ✅ | ✅ turbovid/cloudwish | keluarga defboot |
-| 4 | JavHD | ⚠️ | ✅ | ✅ turbovid/cloudwish | listing dirender JS |
-| 5 | JavSeen | ⚠️ | ✅ | ✅ turbovid/cloudwish | listing dirender JS |
-| 6 | JAVGG | ✅ | ✅ | ✅ embed multi-host | WordPress DooPlayer |
-| 7 | JavGuru | ✅ | ✅ | ⚠️ gateway searcho | m3u8 via gateway xr |
-| 8 | JavMost | ✅ API | ✅ | ⚠️ player AES | listing via showlist2 |
-| 9 | Roshy | ⚠️ | ⚠️ | ⚠️ | WordPress, pola umum |
-| 10 | JavMit | ⚠️ | ⚠️ | ⚠️ | WordPress, pola umum |
-| 11 | SupJAV | ❌ | ❌ | ❌ | Cloudflare Turnstile (butuh WebView) |
-| 12 | MissAV | ❌ | ❌ | ❌ | JS-rendered + Cloudflare |
-| 13 | SextB | ❌ | ❌ | ❌ | Cloudflare di semua domain |
-| 14 | 123AV | ❌ | ❌ | ❌ | tak terjangkau (000) |
+| 3 | 123AV | ✅ | ✅ | ✅ m3u8 | search `keyword`, player JSON → javplayer.cc |
+| 4 | JAVGG | ✅ | ✅ | ✅ embed multi-host | WordPress DooPlayer |
+| 5 | JavGuru | ✅ | ✅ | ⚠️ gateway searcho | m3u8 via gateway xr |
+| 6 | JavHD | ⚠️ | ✅ | ⚠️ | turbovid/cloudwish, listing dirender JS |
+| 7 | MissAV | ⚠️ | ⚠️ | ⚠️ | JS-rendered, butuh verifikasi ulang |
+| 8 | Roshy | ⚠️ | ⚠️ | ⚠️ | WordPress, pola umum |
+| 9 | JavMit | ⚠️ | ⚠️ | ⚠️ | WordPress, pola umum |
 
-✅ terbukti · ⚠️ best-effort / perlu verifikasi live · ❌ diblokir anti-bot (butuh WebView/proxy)
+✅ terbukti · ⚠️ best-effort / perlu verifikasi live
 
 ## ⚠️ Catatan
 
 - Situs cepat berubah (domain, player, anti-bot). `docs/01-riset-sumber-video.md`
   berisi peta pola scraping lengkap untuk perbaikan cepat.
-- SupJAV/MissAV/SextB membutuhkan eksekusi JS (Cloudflare Turnstile) — tidak bisa
-  diselesaikan ekstensi murni; solusi lanjutan: proxy server sendiri atau
-  `loadExtractor` tambahan.
+- Provider yang sudah **dihapus** karena tidak layak: JavBraze (search broken di sisi
+  situs), JavSeen (link-farm), JavMost (player dooplayer berlapis obfuscation), SupJAV
+  & SextB (Cloudflare Turnstile global — butuh WebView manual, imbalan rendah).
+- Daftar ini **best-effort**; status bisa berubah kapan saja seiring perubahan situs.
