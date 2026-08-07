@@ -310,8 +310,8 @@ val JAV_CODE_REGEX = Regex("""\b([A-Z0-9]{2,9}-\d{2,6})\b""", RegexOption.IGNORE
 fun extractJavCode(text: String?): String? =
     text?.let { JAV_CODE_REGEX.find(it)?.groupValues?.getOrNull(1)?.uppercase() }
 
-/** Metadata global R18 (dipakai semua provider bila metadata sumber kosong). */
-data class R18Meta(
+/** Metadata global — prioritas sumber: r18.dev → jav.guru. */
+data class GlobalMeta(
     val title: String? = null,
     val posterUrl: String? = null,
     val actresses: List<String> = emptyList(),
@@ -321,83 +321,136 @@ data class R18Meta(
 )
 
 /**
- * Sumber metadata global: jav.guru (WordPress, tidak CF-protected, metadata
- * terlengkap — Code/Release Date/Studio/Label/Actress/Tags; terverifikasi probe).
- * Pencarian per kode → halaman detail → parse. Hasil di-cache per sesi.
+ * Metadata global untuk semua provider. Urutan pencarian per kode JAV:
+ * 1. **r18.dev** — endpoint JSON resmi `combined={id}/json` (id = kode lowercase tanpa dash),
+ *    tidak CF-protected, data lengkap (title_en/ja, release_date, maker/label/series,
+ *    actresses, directors, categories, jacket poster). Terverifikasi probe.
+ * 2. **jav.guru** — fallback (WordPress, metadata Code/Release/Studio/Label/Actress/Tags).
+ * 3. Metadata dari situs masing-masing (dipakai bila global tidak menemukan).
+ * Hasil di-cache per sesi (termasuk cache negatif).
  */
-object R18Metadata {
-    private const val SOURCE = "https://jav.guru"
-
-    private val cache = java.util.concurrent.ConcurrentHashMap<String, R18Meta>()
+object GlobalMetadata {
+    private val cache = java.util.concurrent.ConcurrentHashMap<String, GlobalMeta>()
     private val negative = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
-    suspend fun lookup(code: String): R18Meta? {
+    suspend fun lookup(code: String): GlobalMeta? {
         cache[code]?.let { return it }
         if (negative.contains(code)) return null
-        val meta = runCatching { fetch(code) }.getOrNull()
+        val meta = runCatching {
+            R18Dev.fetch(code) ?: JavGuru.fetch(code)
+        }.getOrNull()
         if (meta != null) cache[code] = meta else negative.add(code)
         return meta
     }
 
-    private suspend fun fetch(code: String): R18Meta? {
-        val searchHtml = runCatching {
-            app.get("$SOURCE/?s=${code.encodeUri()}", referer = SOURCE).text
-        }.getOrNull() ?: return null
-        val doc = Jsoup.parse(searchHtml, SOURCE)
-        val detailLink = doc.select("a[href]").map { it.absUrl("href") }
-            .firstOrNull { Regex("^${Regex.escape(SOURCE)}/\\d+/[a-z0-9]+-").containsMatchIn(it) }
-            ?: return null
-        val detailHtml = runCatching { app.get(detailLink, referer = SOURCE).text }.getOrNull()
-            ?: return null
-        val d = Jsoup.parse(detailHtml, SOURCE)
+    /** r18.dev — sumber primer: API JSON `combined={id}/json`. */
+    private object R18Dev {
+        private const val SOURCE = "https://r18.dev"
 
-        val title = d.selectFirst("meta[property=og:title]")?.attr("content")
-            ?: d.selectFirst("h1")?.text()
-        val poster = d.selectFirst("meta[property=og:image]")?.attr("content")
+        suspend fun fetch(code: String): GlobalMeta? {
+            val id = code.lowercase().replace(Regex("[^a-z0-9]"), "")
+            if (id.isEmpty()) return null
+            val json = runCatching {
+                app.get("$SOURCE/videos/vod/movies/detail/-/combined=$id/json").text
+            }.getOrNull() ?: return null
+            if (json.isBlank() || !json.trimStart().startsWith("{")) return null
+            return runCatching {
+                val o = org.json.JSONObject(json)
+                val title = o.optString("title_en").ifBlank { o.optString("title_ja") }
+                val actresses = o.optJSONArray("actresses")?.let { arr ->
+                    buildList {
+                        for (i in 0 until arr.length()) {
+                            arr.optJSONObject(i)?.optString("name_romaji")
+                                ?.takeIf { it.isNotBlank() }?.let { add(it) }
+                        }
+                    }.distinct()
+                } ?: emptyList()
+                val genres = o.optJSONArray("categories")?.let { arr ->
+                    buildList {
+                        for (i in 0 until arr.length()) {
+                            arr.optJSONObject(i)?.optString("name_en")
+                                ?.takeIf { it.isNotBlank() }?.let { add(it) }
+                        }
+                    }.distinct()
+                } ?: emptyList()
+                GlobalMeta(
+                    title = title.ifBlank { null },
+                    posterUrl = o.optString("jacket_full_url").ifBlank { null },
+                    actresses = actresses,
+                    studio = o.optString("maker_name_en")
+                        .ifBlank { o.optString("label_name_en") }.ifBlank { null },
+                    release = o.optString("release_date").ifBlank { null },
+                    genres = genres,
+                )
+            }.getOrNull()
+        }
+    }
 
-        // Baris info: <li><strong>Label:</strong> ... <a>Value</a></li>
-        val info = d.select("li").mapNotNull { li ->
-            val strong = li.selectFirst("strong")?.text() ?: return@mapNotNull null
-            val value = li.text().substringAfter(":", "").trim()
-            strong to value
-        }.filter { it.second.isNotEmpty() }
+    /** jav.guru — sumber fallback (WordPress, tidak CF-protected). */
+    private object JavGuru {
+        private const val SOURCE = "https://jav.guru"
 
-        fun pick(label: String): String? = info.firstOrNull { it.first == label }?.second
+        suspend fun fetch(code: String): GlobalMeta? {
+            val searchHtml = runCatching {
+                app.get("$SOURCE/?s=${code.encodeUri()}", referer = SOURCE).text
+            }.getOrNull() ?: return null
+            val doc = Jsoup.parse(searchHtml, SOURCE)
+            val detailLink = doc.select("a[href]").map { it.absUrl("href") }
+                .firstOrNull { Regex("^${Regex.escape(SOURCE)}/\\d+/[a-z0-9]+-").containsMatchIn(it) }
+                ?: return null
+            val detailHtml = runCatching { app.get(detailLink, referer = SOURCE).text }.getOrNull()
+                ?: return null
+            val d = Jsoup.parse(detailHtml, SOURCE)
 
-        val studio = pick("Studio") ?: pick("Label")
-        val release = pick("Release Date")
-        val actresses = d.select("li").mapNotNull { li ->
-            val strong = li.selectFirst("strong")?.text()
-            if (strong == "Actress") li.select("a").map { it.text() }.filter { it.isNotBlank() } else null
-        }.flatten().distinct()
-        val genres = d.select("li").mapNotNull { li ->
-            val strong = li.selectFirst("strong")?.text()
-            if (strong == "Tags" || strong == "Category") li.select("a").map { it.text() }.filter { it.isNotBlank() } else null
-        }.flatten().distinct()
+            val title = d.selectFirst("meta[property=og:title]")?.attr("content")
+                ?: d.selectFirst("h1")?.text()
+            val poster = d.selectFirst("meta[property=og:image]")?.attr("content")
 
-        return R18Meta(
-            title = title,
-            posterUrl = poster,
-            actresses = actresses,
-            studio = studio,
-            release = release,
-            genres = genres,
-        )
+            // Baris info: <li><strong>Label:</strong> ... <a>Value</a></li>
+            val info = d.select("li").mapNotNull { li ->
+                val strong = li.selectFirst("strong")?.text() ?: return@mapNotNull null
+                val value = li.text().substringAfter(":", "").trim()
+                strong to value
+            }.filter { it.second.isNotEmpty() }
+
+            fun pick(label: String): String? = info.firstOrNull { it.first == label }?.second
+
+            val studio = pick("Studio") ?: pick("Label")
+            val release = pick("Release Date")
+            val actresses = d.select("li").mapNotNull { li ->
+                val strong = li.selectFirst("strong")?.text()
+                if (strong == "Actress") li.select("a").map { it.text() }.filter { it.isNotBlank() } else null
+            }.flatten().distinct()
+            val genres = d.select("li").mapNotNull { li ->
+                val strong = li.selectFirst("strong")?.text()
+                if (strong == "Tags" || strong == "Category") li.select("a").map { it.text() }.filter { it.isNotBlank() } else null
+            }.flatten().distinct()
+
+            return GlobalMeta(
+                title = title,
+                posterUrl = poster,
+                actresses = actresses,
+                studio = studio,
+                release = release,
+                genres = genres,
+            )
+        }
     }
 }
 
 /**
- * Isi field LoadResponse yang kosong dari metadata global (R18Metadata).
- * Hanya melakukan lookup bila kode JAV ditemukan & metadata penting masih kosong.
+ * Terapkan metadata global ke LoadResponse. Prioritas: **r18.dev → jav.guru →
+ * metadata situs**. Bila kode JAV ditemukan dan global punya datanya, field diisi
+ * (bahkan menimpa yang sudah diisi situs); bila global kosong, data situs dipertahankan.
  */
 suspend fun MovieLoadResponse.enrichGlobal() {
     val code = extractJavCode(url) ?: extractJavCode(name) ?: return
-    val meta = R18Metadata.lookup(code) ?: return
+    val meta = GlobalMetadata.lookup(code) ?: return
 
-    if (posterUrl.isNullOrBlank() && !meta.posterUrl.isNullOrBlank()) posterUrl = meta.posterUrl
-    if ((name.isBlank() || name == url) && !meta.title.isNullOrBlank()) name = meta.title ?: name
-    if (tags.isNullOrEmpty()) tags = meta.genres
-    if (year == null) year = meta.release?.take(4)?.toIntOrNull()
+    if (!meta.posterUrl.isNullOrBlank()) posterUrl = meta.posterUrl
+    if (!meta.title.isNullOrBlank()) name = meta.title
+    if (!meta.genres.isNullOrEmpty()) tags = meta.genres
+    meta.release?.take(4)?.toIntOrNull()?.let { year = it }
 
     // Plot: selalu tampilkan info kaya (kode + aktris + studio + rilis).
     val lines = buildList {
