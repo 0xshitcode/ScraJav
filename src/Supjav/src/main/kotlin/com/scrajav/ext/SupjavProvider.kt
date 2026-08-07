@@ -72,15 +72,21 @@ class SupjavProvider : MainAPI() {
     ): Boolean {
         val html = runCatching { req(data) }.getOrNull() ?: return false
         val servers = parseServers(html)
-        val token = servers["TV"] ?: servers.values.firstOrNull() ?: return false
+        if (servers.isEmpty()) return false
 
-        val apiUrl = "$streamApiHost/supjav.php?c=${token.reversed()}"
-        val apiBody = runCatching { req(apiUrl) }.getOrNull() ?: return false
-        val m3u8 = apiBody.firstMatch(Regex("""urlPlay.*?(https.*?\.m3u8)""")) ?: return false
-
-        val origin = Regex("^https?://[^/]+").find(m3u8)?.value ?: mainUrl
-        callback(hlsLink(name, name, m3u8, origin))
-        return true
+        // Multi-sumber: coba semua server (TV, dst); emit semua m3u8 unik yang ketemu.
+        var found = false
+        val seen = mutableSetOf<String>()
+        for ((serverName, token) in servers) {
+            val apiUrl = "$streamApiHost/supjav.php?c=${token.reversed()}"
+            val apiBody = runCatching { req(apiUrl) }.getOrNull() ?: continue
+            val m3u8 = apiBody.firstMatch(Regex("""urlPlay.*?(https.*?\.m3u8)""")) ?: continue
+            if (!seen.add(m3u8)) continue
+            val origin = Regex("^https?://[^/]+").find(m3u8)?.value ?: mainUrl
+            emitHls(name, "$name $serverName", m3u8, origin, callback)
+            found = true
+        }
+        return found
     }
 
     internal fun parseServers(html: String): Map<String, String> =

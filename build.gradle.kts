@@ -32,6 +32,11 @@ fun Project.cloudstream(configuration: CloudstreamExtension.() -> Unit) = extens
 fun Project.android(configuration: BaseExtension.() -> Unit) = extensions.getByName<BaseExtension>("android").configuration()
 
 subprojects {
+    // Proyek induk ":src" (parent dari modul-modul) tidak punya kode sendiri —
+    // plugin CloudStream tidak boleh diterapkan ke proyek ini (task writeCacheEntry
+    // akan gagal mencari src.cs3). Hanya modul ekstensi nyata yang di-build.
+    if (path == ":src") return@subprojects
+
     apply(plugin = "com.android.library")
     apply(plugin = "kotlin-android")
     apply(plugin = "com.lagradost.cloudstream3.gradle")

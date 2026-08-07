@@ -5,6 +5,7 @@ import com.lagradost.cloudstream3.HomePageResponse
 import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.MainPageRequest
+import com.lagradost.cloudstream3.MovieLoadResponse
 import com.lagradost.cloudstream3.SearchResponse
 import com.lagradost.cloudstream3.SearchResponseList
 import com.lagradost.cloudstream3.SubtitleFile
@@ -22,9 +23,9 @@ import org.jsoup.Jsoup
  * OMGJAV — terverifikasi live (Agustus 2026).
  * - Listing/home : GET /search/hottest
  * - Search       : GET /?s={query}
- * - Halaman video: GET /v/{kode}; m3u8 tertanam di JSON player:
- *      hosts:[{name:"BETA", media:{src:"https://cdn.xxx/master.m3u8", type:"m3u8"}}]
- * - Link listing relatif ("../v/X") — diselesaikan via Jsoup absUrl.
+ * - Halaman video: GET /v/{kode}; player JSON tertanam dengan **multi-host**:
+ *      hosts:[{name:"BETA", media:{src:"https://cdn.xxx/master.m3u8", type:"m3u8"}}, ...]
+ *   Setiap host di-emit → **multi-sumber**; tiap master m3u8 → **multi-resolusi**.
  * Ref: docs/01-riset-sumber-video.md §1
  */
 class OmgjavProvider : MainAPI() {
@@ -55,7 +56,7 @@ class OmgjavProvider : MainAPI() {
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
             this.plot = code?.let { "Kode: $it" }
-        }
+        }.also { (it as? MovieLoadResponse)?.enrichGlobal() }
     }
 
     override suspend fun loadLinks(
@@ -65,10 +66,30 @@ class OmgjavProvider : MainAPI() {
         callback: (ExtractorLink) -> Unit,
     ): Boolean {
         val html = runCatching { req(data) }.getOrNull() ?: return false
-        val m3u8 = html.firstMatch(Regex("""(?:src|"src")\s*[:=]\s*"([^"]+\.m3u8[^"]*)"""))
-            ?: return false
-        callback(hlsLink(name, name, resolveUrl(data, m3u8), "$mainUrl/"))
-        return true
+
+        // Player JSON: semua host + src-nya (urutan name,src,name,src...).
+        val names = Regex("""\"name\"\s*:\s*\"([^\"]+)\"""").findAll(html).map { it.groupValues[1] }.toList()
+        val srcs = Regex("""\"src\"\s*:\s*\"([^\"]+?\.m3u8[^\"]*)\"""").findAll(html).map { it.groupValues[1] }.toList()
+        var found = false
+        srcs.distinct().forEachIndexed { i, src ->
+            val hostName = names.getOrNull(i) ?: name
+            emitHls(name, "$name $hostName", resolveUrl(data, src), "$mainUrl/", callback)
+            found = true
+        }
+        if (found) return true
+
+        // Fallback: m3u8/mp4 langsung di halaman.
+        val m3u8 = html.firstMatch(Regex("""(?:src|\"src\")\s*[:=]\s*\"([^\"]+\.m3u8[^\"]*)\""""))
+        if (m3u8 != null) {
+            emitHls(name, name, resolveUrl(data, m3u8), "$mainUrl/", callback)
+            return true
+        }
+        val direct = findM3u8OrMp4(html)
+        if (direct != null) {
+            emitHls(name, name, resolveUrl(data, direct), data, callback)
+            return true
+        }
+        return false
     }
 
     private fun parseListing(html: String, pageUrl: String): List<SearchResponse> {

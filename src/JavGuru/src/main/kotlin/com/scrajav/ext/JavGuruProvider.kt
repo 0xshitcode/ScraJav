@@ -5,6 +5,7 @@ import com.lagradost.cloudstream3.HomePageResponse
 import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.MainPageRequest
+import com.lagradost.cloudstream3.MovieLoadResponse
 import com.lagradost.cloudstream3.SearchResponse
 import com.lagradost.cloudstream3.SearchResponseList
 import com.lagradost.cloudstream3.SubtitleFile
@@ -17,6 +18,7 @@ import com.lagradost.cloudstream3.toNewSearchResponseList
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.StringUtils.encodeUri
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
 
 /**
  * JAV.GURU — WordPress (GeneratePress). Probe live Agustus 2026:
@@ -24,7 +26,8 @@ import org.jsoup.Jsoup
  * - Player    : tombol `wp-btn-iframe` dengan `data-localize`; blok JS berisi
  *   `iframe_url` base64 → halaman gateway `searcho/?xd={token}`.
  *   Gateway: stream-box punya 3 atribut data-* → token = gabungan ketiganya →
- *   player asli = `searcho/?xr={token-dibalik}` → m3u8.
+ *   player asli = `searcho/?xr={token-dibalik}` → m3u8 (multi-resolusi via emitHls).
+ * - Metadata  : infoleft (Code/Release Date/Director/Studio/Label/Actress/Tags).
  * Ref: docs/01-riset-sumber-video.md §4
  */
 class JavGuruProvider : MainAPI() {
@@ -53,13 +56,35 @@ class JavGuruProvider : MainAPI() {
             ?: url
         val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
             ?: doc.selectFirst(".large-screenimg img")?.attr("src")
-        val meta = doc.select(".infoleft li").mapNotNull { it.text().takeIf { t -> t.contains(":") } }
+
+        val info = parseInfo(doc)
         val code = Regex("/(\\d+)/([a-z0-9]+)-").find(url)?.groupValues?.getOrNull(2)?.uppercase()
+            ?: extractJavCode(title)
+        val year = info["Release Date"]?.take(4)?.toIntOrNull()
+
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
-            this.plot = (code?.let { "Kode: $it\n" } ?: "") + meta.joinToString("\n")
-        }
+            this.tags = (info["Tags"] ?: info["Category"]).orEmpty()
+                .split(",").map { it.trim() }.filter { it.isNotBlank() }.ifEmpty { null }
+            this.year = year
+            this.plot = buildList {
+                code?.let { add("Kode: $it") }
+                info["Actress"]?.let { if (it.isNotBlank()) add("Aktris: $it") }
+                info["Studio"]?.let { if (it.isNotBlank()) add("Studio: $it") }
+                info["Release Date"]?.let { if (it.isNotBlank()) add("Rilis: $it") }
+                info["Director"]?.let { if (it.isNotBlank()) add("Sutradara: $it") }
+            }.joinToString("\n").ifBlank { code?.let { "Kode: $it" } }
+        }.also { (it as? MovieLoadResponse)?.enrichGlobal() }
     }
+
+    /** Parse baris infoleft → peta label → nilai teks (a[href] dipakai utk nilai). */
+    private fun parseInfo(doc: org.jsoup.nodes.Document): Map<String, String> =
+        doc.select("li").mapNotNull { li ->
+            val strong = li.selectFirst("strong")?.text()?.trimEnd(':', ' ') ?: return@mapNotNull null
+            val value = li.select("a").map { it.text().trim() }.filter { it.isNotBlank() }
+                .joinToString(", ").ifBlank { li.ownText().trim().trimEnd(':') }
+            if (value.isBlank()) null else strong to value
+        }.toMap()
 
     override suspend fun loadLinks(
         data: String,
@@ -70,8 +95,8 @@ class JavGuruProvider : MainAPI() {
         val html = runCatching { req(data) }.getOrNull() ?: return false
         var found = false
 
-        // 1) Gateway searcho dari tombol wp-btn-iframe (iframe_url base64).
-        val b64s = Regex("""iframe_url["']?\s*[:=]\s*["']([A-Za-z0-9+/=]{20,})["']""")
+        // 1) Gateway searcho dari tombol wp-btn-iframe (iframe_url base64) — bisa lebih dari satu.
+        val b64s = Regex("""iframe_url[\"']?\s*[:=]\s*[\"']([A-Za-z0-9+/=]{20,})[\"']""")
             .findAll(html).map { it.groupValues[1] }.toList()
         for (b64 in b64s) {
             val decoded = decodeBase64(b64) ?: continue
@@ -80,13 +105,14 @@ class JavGuruProvider : MainAPI() {
             }
         }
 
-        // 2) Fallback: m3u8/mp4 langsung.
+        // 2) Fallback: m3u8/mp4 langsung — multi-resolusi.
         val direct = findM3u8OrMp4(html)
         if (direct != null) {
-            callback(
-                if (direct.contains(".m3u8")) hlsLink(name, name, resolveUrl(data, direct), data)
-                else videoLink(name, name, resolveUrl(data, direct), data)
-            )
+            if (direct.contains(".m3u8")) {
+                emitHls(name, name, resolveUrl(data, direct), data, callback)
+            } else {
+                emitVideo(name, name, resolveUrl(data, direct), data, callback)
+            }
             found = true
         }
         return found
@@ -102,9 +128,9 @@ class JavGuruProvider : MainAPI() {
             ?: return false
         if (keys.isEmpty()) return false
 
-        val box = html.firstMatch(Regex("""class="stream-box"([^>]*)""")) ?: return false
+        val box = html.firstMatch(Regex("""class=\"stream-box\"([^>]*)""")) ?: return false
         val token = keys.joinToString("") { key ->
-            Regex("""$key="([^"]+)"""").find(box)?.groupValues?.getOrNull(1) ?: ""
+            Regex("""$key=\"([^\"]+)\"""").find(box)?.groupValues?.getOrNull(1) ?: ""
         }
         if (token.length < 8) return false
 
@@ -112,10 +138,11 @@ class JavGuruProvider : MainAPI() {
         val playerHtml = runCatching { app.get(realSrc, referer = searchoUrl).text }.getOrNull() ?: return false
         val m = findM3u8OrMp4(playerHtml)
         if (m != null) {
-            callback(
-                if (m.contains(".m3u8")) hlsLink(name, name, m, searchoUrl)
-                else videoLink(name, name, m, searchoUrl)
-            )
+            if (m.contains(".m3u8")) {
+                emitHls(name, name, m, searchoUrl, callback)
+            } else {
+                emitVideo(name, name, m, searchoUrl, callback)
+            }
             return true
         }
         return false

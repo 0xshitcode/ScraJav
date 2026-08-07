@@ -5,6 +5,7 @@ import com.lagradost.cloudstream3.HomePageResponse
 import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.MainPageRequest
+import com.lagradost.cloudstream3.MovieLoadResponse
 import com.lagradost.cloudstream3.SearchResponse
 import com.lagradost.cloudstream3.SearchResponseList
 import com.lagradost.cloudstream3.SubtitleFile
@@ -52,7 +53,7 @@ class RoshyProvider : MainAPI() {
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
             this.plot = code?.let { "Kode: $it" }
-        }
+        }.also { (it as? MovieLoadResponse)?.enrichGlobal() }
     }
 
     override suspend fun loadLinks(
@@ -69,10 +70,11 @@ class RoshyProvider : MainAPI() {
         }
         val direct = findM3u8OrMp4(html)
         if (direct != null) {
-            callback(
-                if (direct.contains(".m3u8")) hlsLink(name, name, resolveUrl(data, direct), data)
-                else videoLink(name, name, resolveUrl(data, direct), data)
-            )
+            if (direct.contains(".m3u8")) {
+                emitHls(name, name, resolveUrl(data, direct), data, callback)
+            } else {
+                emitVideo(name, name, resolveUrl(data, direct), data, callback)
+            }
             found = true
         }
         return found

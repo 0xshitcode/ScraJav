@@ -5,6 +5,7 @@ import com.lagradost.cloudstream3.HomePageResponse
 import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.MainPageRequest
+import com.lagradost.cloudstream3.MovieLoadResponse
 import com.lagradost.cloudstream3.SearchResponse
 import com.lagradost.cloudstream3.SearchResponseList
 import com.lagradost.cloudstream3.SubtitleFile
@@ -57,7 +58,8 @@ class JavTsunamiProvider : MainAPI() {
             this.posterUrl = poster
             this.tags = genres
             this.year = date?.take(4)?.toIntOrNull()
-        }
+            this.plot = extractJavCode(title)?.let { "Kode: $it" }
+        }.also { (it as? MovieLoadResponse)?.enrichGlobal() }
     }
 
     override suspend fun loadLinks(
@@ -71,21 +73,32 @@ class JavTsunamiProvider : MainAPI() {
 
         val direct = findM3u8OrMp4(html)
         if (direct != null) {
-            callback(hlsLink(name, name, resolveUrl(embedUrl, direct), embedUrl))
+            if (direct.contains(".m3u8")) {
+                emitHls(name, name, resolveUrl(embedUrl, direct), embedUrl, callback)
+            } else {
+                emitVideo(name, name, resolveUrl(embedUrl, direct), embedUrl, callback)
+            }
             return true
         }
 
-        // Satu level iframe (batasi untuk keamanan).
-        val iframe = Jsoup.parse(html).selectFirst("iframe[src]")?.attr("src") ?: return false
-        if (iframe.isBlank() || iframe.startsWith("javascript")) return false
-        val next = resolveUrl(embedUrl, iframe)
-        val nextHtml = runCatching { req(next) }.getOrNull() ?: return false
-        val m = findM3u8OrMp4(nextHtml)
-        if (m != null) {
-            callback(hlsLink(name, name, resolveUrl(next, m), next))
-            return true
+        // Satu level iframe (batasi untuk keamanan) — semua iframe, multi-sumber.
+        var found = false
+        val iframes = Jsoup.parse(html).select("iframe[src]").mapNotNull { it.attr("src") }
+            .filter { it.isNotBlank() && !it.startsWith("javascript") }.distinct()
+        for (iframe in iframes) {
+            val next = resolveUrl(embedUrl, iframe)
+            val nextHtml = runCatching { req(next) }.getOrNull() ?: continue
+            val m = findM3u8OrMp4(nextHtml)
+            if (m != null) {
+                if (m.contains(".m3u8")) {
+                    emitHls(name, name, resolveUrl(next, m), next, callback)
+                } else {
+                    emitVideo(name, name, resolveUrl(next, m), next, callback)
+                }
+                found = true
+            }
         }
-        return false
+        return found
     }
 
     private fun parseListing(html: String): List<SearchResponse> {
