@@ -48,12 +48,16 @@ jobs:
           printf '%s' '{ "name": "ScraJav", "description": "ScraJav extension repository", "manifestVersion": 1, "pluginLists": ["https://raw.githubusercontent.com/0xshitcode/ScraJav/builds/plugins.json"] }' > repo.json
 
       - name: Push builds
+        env:
+          PUSH_TOKEN: ${{ secrets.GH_PUSH_TOKEN }}
         run: |
           cd $GITHUB_WORKSPACE/builds
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          # PAT user (secret GH_PUSH_TOKEN) — GITHUB_TOKEN di repo ini read-only.
-          git remote set-url origin https://x-access-token:${{ secrets.GH_PUSH_TOKEN }}@github.com/0xshitcode/ScraJav.git
+          # Hapus Authorization header GITHUB_TOKEN (read-only) dari actions/checkout
+          # yang menimpa kredensial PAT di URL. PAT user dipakai untuk push.
+          git config --local --unset-all http.https://github.com/.extraheader || true
+          git remote set-url origin https://x-access-token:${PUSH_TOKEN}@github.com/0xshitcode/ScraJav.git
           git add .
           git commit --amend -m "Build $GITHUB_SHA" || exit 0   # tidak error jika tidak ada perubahan
           git push --force
