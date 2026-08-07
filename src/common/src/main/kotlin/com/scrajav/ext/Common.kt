@@ -251,6 +251,54 @@ private suspend fun resolveEmbedGenericDeep(
     return loadExtractor(embedUrl, subtitleCallback, callback)
 }
 
+/**
+ * Resolve embed javplayer.cc (123AV dll): embed `javplayer.cc/e/{hash}` → API
+ * `javplayer.cc/stream?id={hash}` → JSON `{"status":"ok","media":{"stream": m3u8, "vtt": ...}}`.
+ * Stream m3u8 diproses via [emitHls] (multi-resolusi); VTT di-emit sebagai subtitle.
+ */
+suspend fun resolveJavPlayer(
+    embedUrl: String,
+    subtitleCallback: (SubtitleFile) -> Unit,
+    callback: (ExtractorLink) -> Unit,
+): Boolean {
+    val hash = Regex("""javplayer\.cc/e/([a-z0-9_]+)""", RegexOption.IGNORE_CASE)
+        .find(embedUrl)?.groupValues?.getOrNull(1) ?: return false
+    val api = "https://javplayer.cc/stream?id=$hash"
+    val json = runCatching { app.get(api, referer = "https://javplayer.cc/").text }.getOrNull()
+        ?: return false
+    val stream = Regex("""(?:["']stream["']\s*:\s*["'])([^"']+)""").find(json)?.groupValues?.getOrNull(1)
+        ?: return false
+    if (stream.contains(".m3u8")) {
+        emitHls("javplayer.cc", "javplayer.cc", stream, "https://javplayer.cc/", callback)
+    } else {
+        emitVideo("javplayer.cc", "javplayer.cc", stream, "https://javplayer.cc/", callback)
+    }
+    Regex("""(?:["']vtt["']\s*:\s*["'])([^"']+)""").find(json)?.groupValues?.getOrNull(1)
+        ?.let { vtt -> subtitleCallback(SubtitleFile("ID", vtt)) }
+    return true
+}
+
+/** Ekstrak daftar URL episode dari pola `player(JSON.parse('[...]'))` (123AV dll). */
+fun parsePlayerEpisodes(html: String): List<String> {
+    val raw = Regex("""player\(\s*JSON\.parse\(\s*'([\s\S]*?)'\s*\)""").find(html)
+        ?.groupValues?.getOrNull(1) ?: return emptyList()
+
+    // Decode escape string JS: \uXXXX -> char, \\ -> \, \/ -> /.
+    val js = Regex("""\\u([0-9a-fA-F]{4})""")
+        .replace(raw) { m -> m.groupValues[1].toInt(16).toChar().toString() }
+        .replace("\\\\", "\\")
+        .replace("\\/", "/")
+
+    return runCatching {
+        val arr = org.json.JSONArray(js)
+        buildList {
+            for (i in 0 until arr.length()) {
+                arr.optJSONObject(i)?.optString("url")?.takeIf { it.startsWith("http") }?.let { add(it) }
+            }
+        }.distinct()
+    }.getOrDefault(emptyList())
+}
+
 val String.host: String
     get() = Regex("^https?://([^/]+)").find(this)?.groupValues?.getOrNull(1) ?: this
 

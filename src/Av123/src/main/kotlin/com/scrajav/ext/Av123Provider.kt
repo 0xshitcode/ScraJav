@@ -41,7 +41,7 @@ class Av123Provider : MainAPI() {
     }
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {
-        val url = "$mainUrl/search?query=${query.encodeUri()}"
+        val url = "$mainUrl/en/search?keyword=${query.encodeUri()}"
         return parseListing(req(url)).toNewSearchResponseList()
     }
 
@@ -50,17 +50,14 @@ class Av123Provider : MainAPI() {
         val title = doc.selectFirst("meta[property=og:title]")?.attr("content")
             ?: doc.selectFirst("h1")?.text()
             ?: url
-        val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
-            ?.takeUnless { it.contains("logo") }
 
-        // Format judul 123AV: "ABF-375 — judul... — Aktris — 123AV"
+        // Format judul 123AV: "ABF-375 — judul... — Aktris"
         val code = extractJavCode(title) ?: Regex("/en/v/([^/?#]+)").find(url)
             ?.groupValues?.getOrNull(1)?.uppercase()
         val actress = title.substringAfter(" — ", "").substringBeforeLast(" — ")
             ?.takeIf { it.isNotBlank() && it != "123AV" }
 
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
-            this.posterUrl = poster
             this.plot = buildList {
                 code?.let { add("Kode: $it") }
                 if (!actress.isNullOrBlank() && actress != title) add("Aktris: $actress")
@@ -77,9 +74,8 @@ class Av123Provider : MainAPI() {
         val html = runCatching { req(data) }.getOrNull() ?: return false
         var found = false
 
-        // videoUrl di HTML (pola app referensi) atau m3u8/mp4 langsung.
-        val direct = html.firstMatch(Regex("""videoUrl["']?\s*[:=]\s*["']([^"']+)["']"""))
-            ?: findM3u8OrMp4(html)
+        // m3u8/mp4 langsung di HTML.
+        val direct = findM3u8OrMp4(html)
         if (direct != null) {
             if (direct.contains(".m3u8")) {
                 emitHls(name, name, resolveUrl(data, direct), data, callback)
@@ -89,8 +85,19 @@ class Av123Provider : MainAPI() {
             found = true
         }
 
-        val embeds = Jsoup.parse(html).select("iframe[src]").mapNotNull { it.attr("src") }
+        // Episode dari pola player(JSON.parse('...')) → embed javplayer.cc → stream API.
+        val embeds = parsePlayerEpisodes(html)
         for (e in embeds.distinct()) {
+            found = if (e.contains("javplayer.cc")) {
+                resolveJavPlayer(e, subtitleCallback, callback)
+            } else {
+                resolveEmbedGeneric(e, subtitleCallback, callback)
+            } || found
+        }
+
+        // iframe embed lain.
+        val iframes = Jsoup.parse(html).select("iframe[src]").mapNotNull { it.attr("src") }
+        for (e in iframes.distinct()) {
             found = resolveEmbedGeneric(resolveUrl(data, e), subtitleCallback, callback) || found
         }
         return found
@@ -100,13 +107,15 @@ class Av123Provider : MainAPI() {
         val doc = Jsoup.parse(html, mainUrl)
         return doc.select("a[href]").mapNotNull { a ->
             val abs = a.absUrl("href")
+            if (!Regex("^${Regex.escape(mainUrl)}/en/v/[^/?#]+").containsMatchIn(abs)) {
+                return@mapNotNull null
+            }
             val img = a.selectFirst("img")
             val title = a.attr("title").ifBlank { a.text() }.ifBlank { return@mapNotNull null }
-            if (img == null && abs == mainUrl) return@mapNotNull null
             newMovieSearchResponse(title, abs, TvType.NSFW) {
                 posterUrl = (img?.attr("data-src") ?: img?.attr("src"))
                     ?.takeUnless { it.startsWith("data:") }
             }
-        }.distinctBy { it.url }.filter { it.url.startsWith(mainUrl) }
+        }.distinctBy { it.url }
     }
 }
