@@ -95,25 +95,6 @@
         "name": "JavMit"
     },
     {
-        "fileHash": "sha256-5c9101fc35c9e2e5742773653090c8fc87246e9aa7744bc2adfb12271a78b686",
-        "apiVersion": 1,
-        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 41018,
-        "status": 2,
-        "language": "id",
-        "authors": [
-            "ScraJav"
-        ],
-        "tvTypes": [
-            "NSFW"
-        ],
-        "version": 1,
-        "internalName": "JavMost",
-        "description": "JAV streaming dari javmost.ws (listing API showlist2)",
-        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/JavMost.cs3",
-        "name": "JavMost"
-    },
-    {
         "fileHash": "sha256-969bd6023c62a522fc5c69b9337e24860a8154e5c8ecba13cee5a2682c20a043",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
@@ -188,43 +169,5 @@
         "description": "JAV streaming dari roshy.tv (WordPress, multi embed)",
         "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Roshy.cs3",
         "name": "Roshy"
-    },
-    {
-        "fileHash": "sha256-1eb7459589c486c9b6cb977b6b7ca8fb54c1e2ab94e0c16089eb2d12275c8578",
-        "apiVersion": 1,
-        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 39366,
-        "status": 3,
-        "language": "id",
-        "authors": [
-            "ScraJav"
-        ],
-        "tvTypes": [
-            "NSFW"
-        ],
-        "version": 1,
-        "internalName": "Sextb",
-        "description": "JAV streaming dari sextb.cc (CF-protected \u2014 best-effort)",
-        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Sextb.cs3",
-        "name": "Sextb"
-    },
-    {
-        "fileHash": "sha256-b1dff042e6fdd1f0ad2a4b334c40f67021a0f5b1c180023f765d477468f5db1c",
-        "apiVersion": 1,
-        "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 41433,
-        "status": 3,
-        "language": "id",
-        "authors": [
-            "ScraJav"
-        ],
-        "tvTypes": [
-            "NSFW"
-        ],
-        "version": 1,
-        "internalName": "Supjav",
-        "description": "JAV streaming dari supjav.com (CF Turnstile \u2014 best-effort)",
-        "url": "https://raw.githubusercontent.com/0xshitcode/ScraJav/main/Supjav.cs3",
-        "name": "Supjav"
     }
 ]
