@@ -4,7 +4,7 @@ cloudstream {
     description = "JAV streaming dari javgg.net (WordPress DooPlayer, multi embed)"
     authors = listOf("ScraJav")
     status = 1
-    tvTypes = listOf("Movie")
+    tvTypes = listOf("NSFW")
     language = "id"
 }
 

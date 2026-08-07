@@ -4,7 +4,7 @@ cloudstream {
     description = "JAV streaming dari javmost.ws (listing API showlist2)"
     authors = listOf("ScraJav")
     status = 2
-    tvTypes = listOf("Movie")
+    tvTypes = listOf("NSFW")
     language = "id"
 }
 

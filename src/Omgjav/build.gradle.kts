@@ -4,7 +4,7 @@ cloudstream {
     description = "JAV streaming dari omgjav.com (listing, detail, m3u8 langsung)"
     authors = listOf("ScraJav")
     status = 1
-    tvTypes = listOf("Movie")
+    tvTypes = listOf("NSFW")
     language = "id"
 }
 

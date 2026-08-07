@@ -4,7 +4,7 @@ cloudstream {
     description = "JAV streaming dari missav.live (JS-rendered + CF — best-effort)"
     authors = listOf("ScraJav")
     status = 3
-    tvTypes = listOf("Movie")
+    tvTypes = listOf("NSFW")
     language = "id"
 }
 

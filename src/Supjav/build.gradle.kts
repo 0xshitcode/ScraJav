@@ -4,7 +4,7 @@ cloudstream {
     description = "JAV streaming dari supjav.com (CF Turnstile — best-effort)"
     authors = listOf("ScraJav")
     status = 3
-    tvTypes = listOf("Movie")
+    tvTypes = listOf("NSFW")
     language = "id"
 }
 

@@ -4,7 +4,7 @@ cloudstream {
     description = "JAV streaming dari javhd.today (turbovid/cloudwish)"
     authors = listOf("ScraJav")
     status = 2
-    tvTypes = listOf("Movie")
+    tvTypes = listOf("NSFW")
     language = "id"
 }
 

@@ -4,7 +4,7 @@ cloudstream {
     description = "JAV streaming dari javtsunami.com (WordPress, embed player)"
     authors = listOf("ScraJav")
     status = 1
-    tvTypes = listOf("Movie")
+    tvTypes = listOf("NSFW")
     language = "id"
 }
 
