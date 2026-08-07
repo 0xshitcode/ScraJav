@@ -16,6 +16,8 @@ import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.toNewSearchResponseList
+import com.lagradost.cloudstream3.mainPage
+import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.StringUtils.encodeUri
 import org.jsoup.Jsoup
@@ -38,10 +40,24 @@ class OmgjavProvider : MainAPI() {
 
     private suspend fun req(url: String) = app.get(url, referer = mainUrl).text
 
+    // Section navigasi + label studio dari situs.
+    override val mainPage = mainPageOf(
+        mainPage("$mainUrl/search/hottest", "Hot"),
+        mainPage("$mainUrl/search/newest", "New"),
+        mainPage("$mainUrl/search/hottest?label=Madonna", "Madonna"),
+        mainPage("$mainUrl/search/hottest?label=S1%20NO.1%20STYLE", "S1 NO.1 STYLE"),
+        mainPage("$mainUrl/search/hottest?label=Bibian", "Bibian"),
+        mainPage("$mainUrl/search/hottest?label=Das!", "Das!"),
+        mainPage("$mainUrl/search/hottest?label=Tissue", "Tissue"),
+        mainPage("$mainUrl/search/hottest?label=Ideapocket", "Ideapocket"),
+        mainPage("$mainUrl/search/hottest?label=MOODYZ", "MOODYZ"),
+        mainPage("$mainUrl/search/hottest?label=SOD", "SOD"),
+    )
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = "$mainUrl/search/hottest"
+        val url = request.data.ifBlank { "$mainUrl/search/hottest" }
         val items = parseListing(req(url), url)
-        return newHomePageResponse(listOf(HomePageList("Hot", items, false)), false)
+        return newHomePageResponse(listOf(HomePageList(request.name.ifBlank { "Hot" }, items, false)), false)
     }
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {

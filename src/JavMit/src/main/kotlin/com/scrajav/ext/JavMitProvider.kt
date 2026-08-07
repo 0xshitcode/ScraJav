@@ -15,6 +15,8 @@ import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.toNewSearchResponseList
+import com.lagradost.cloudstream3.mainPage
+import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.StringUtils.encodeUri
 import org.jsoup.Jsoup
@@ -33,9 +35,42 @@ class JavMitProvider : MainAPI() {
 
     private suspend fun req(url: String) = app.get(url, referer = mainUrl).text
 
+    // Section navigasi + kategori genre dari situs (verifikasi /categories/).
+    override val mainPage = mainPageOf(
+        mainPage("$mainUrl/", "Latest"),
+        mainPage("$mainUrl/video/", "Browse"),
+        mainPage("$mainUrl/category/amateur/", "Amateur"),
+        mainPage("$mainUrl/category/anal/", "Anal"),
+        mainPage("$mainUrl/category/bbw/", "BBW"),
+        mainPage("$mainUrl/category/beautiful-girl/", "Beautiful Girl"),
+        mainPage("$mainUrl/category/big-tits/", "Big Tits"),
+        mainPage("$mainUrl/category/blowjob/", "Blowjob"),
+        mainPage("$mainUrl/category/bukkake/", "Bukkake"),
+        mainPage("$mainUrl/category/cosplay/", "Cosplay"),
+        mainPage("$mainUrl/category/creampie/", "Creampie"),
+        mainPage("$mainUrl/category/cuckold/", "Cuckold"),
+        mainPage("$mainUrl/category/deep-throat/", "Deep Throat"),
+        mainPage("$mainUrl/category/facials/", "Facials"),
+        mainPage("$mainUrl/category/gal/", "Gal"),
+        mainPage("$mainUrl/category/hardcore/", "Hardcore"),
+        mainPage("$mainUrl/category/incest/", "Incest"),
+        mainPage("$mainUrl/category/lesbian/", "Lesbian"),
+        mainPage("$mainUrl/category/married/", "Married"),
+        mainPage("$mainUrl/category/mature-woman/", "Mature Woman"),
+        mainPage("$mainUrl/category/ol/", "OL"),
+        mainPage("$mainUrl/category/orgy/", "Orgy"),
+        mainPage("$mainUrl/category/pov/", "POV"),
+        mainPage("$mainUrl/category/schoolgirls/", "Schoolgirl"),
+        mainPage("$mainUrl/category/slender/", "Slender"),
+        mainPage("$mainUrl/category/solowork/", "Solowork"),
+        mainPage("$mainUrl/category/squirting/", "Squirting"),
+        mainPage("$mainUrl/category/urination/", "Urination"),
+    )
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val items = parseListing(req(mainUrl))
-        return newHomePageResponse(listOf(HomePageList("Latest", items, false)), false)
+        val url = request.data.ifBlank { mainUrl }
+        val items = parseListing(req(url))
+        return newHomePageResponse(listOf(HomePageList(request.name.ifBlank { "Latest" }, items, false)), false)
     }
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {

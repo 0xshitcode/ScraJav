@@ -15,6 +15,8 @@ import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.toNewSearchResponseList
+import com.lagradost.cloudstream3.mainPage
+import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.StringUtils.encodeUri
 import org.jsoup.Jsoup
@@ -35,9 +37,40 @@ class JavggProvider : MainAPI() {
 
     private suspend fun req(url: String) = app.get(url, referer = mainUrl).text
 
+    // Section navigasi (New/Trending/Featured) + tag/kategori genre dari situs.
+    override val mainPage = mainPageOf(
+        mainPage("$mainUrl/new-post/", "New Post"),
+        mainPage("$mainUrl/trending/", "Trending"),
+        mainPage("$mainUrl/trending/?sort=today", "Popular Today"),
+        mainPage("$mainUrl/trending/?sort=weekly", "Popular This Week"),
+        mainPage("$mainUrl/trending/?sort=monthly", "Popular This Month"),
+        mainPage("$mainUrl/featured/", "Featured"),
+        mainPage("$mainUrl/tag/english-subtitle/", "English Subtitle"),
+        mainPage("$mainUrl/tag/uncensored-leak/", "Uncensored Leak"),
+        mainPage("$mainUrl/tag/reduce-mosaic/", "Reduce Mosaic"),
+        mainPage("$mainUrl/tag/censored/", "Censored"),
+        mainPage("$mainUrl/tag/chinese-subtitle/", "Chinese Subtitle"),
+        mainPage("$mainUrl/tag/chinese-porn/", "Chinese Porn"),
+        mainPage("$mainUrl/genre/1080p/", "1080p"),
+        mainPage("$mainUrl/genre/4k/", "4K"),
+        mainPage("$mainUrl/genre/amateur/", "Amateur"),
+        mainPage("$mainUrl/genre/anal/", "Anal"),
+        mainPage("$mainUrl/genre/big-tits/", "Big Tits"),
+        mainPage("$mainUrl/genre/blowjob/", "Blowjob"),
+        mainPage("$mainUrl/genre/creampie/", "Creampie"),
+        mainPage("$mainUrl/genre/cuckold/", "Cuckold"),
+        mainPage("$mainUrl/genre/squirting/", "Squirting"),
+        mainPage("$mainUrl/genre/lesbian/", "Lesbian"),
+        mainPage("$mainUrl/genre/incest/", "Incest"),
+        mainPage("$mainUrl/genre/orgy/", "Orgy"),
+        mainPage("$mainUrl/genre/drama/", "Drama"),
+        mainPage("$mainUrl/genre/solowork/", "Solowork"),
+    )
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val items = parseListing(req(mainUrl))
-        return newHomePageResponse(listOf(HomePageList("Latest", items, false)), false)
+        val url = request.data.ifBlank { "$mainUrl/new-post/" }
+        val items = parseListing(req(url))
+        return newHomePageResponse(listOf(HomePageList(request.name.ifBlank { "New Post" }, items, false)), false)
     }
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {

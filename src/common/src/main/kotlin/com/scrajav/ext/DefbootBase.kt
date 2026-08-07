@@ -39,8 +39,9 @@ open class DefbootBase : MainAPI() {
     private suspend fun req(url: String) = app.get(url, referer = mainUrl).text
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val items = scrapeCards("$mainUrl$mainPagePath")
-        return newHomePageResponse(listOf(HomePageList("Latest", items, false)), false)
+        val url = request.data.ifBlank { "$mainUrl$mainPagePath" }
+        val items = scrapeCards(url)
+        return newHomePageResponse(listOf(HomePageList(request.name.ifBlank { "Latest" }, items, false)), false)
     }
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {

@@ -15,6 +15,8 @@ import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.toNewSearchResponseList
+import com.lagradost.cloudstream3.mainPage
+import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.StringUtils.encodeUri
 import org.jsoup.Jsoup
@@ -36,9 +38,44 @@ class MissavProvider : MainAPI() {
 
     private suspend fun req(url: String) = app.get(url, referer = mainUrl).text
 
+    // Section navigasi + kategori genre dari situs.
+    override val mainPage = mainPageOf(
+        mainPage("${mainUrl}/dm539/id/new", "Recent Update"),
+        mainPage("${mainUrl}/dm635/id/release", "New Release"),
+        mainPage("${mainUrl}/dm301/id/today-hot", "Today Hot"),
+        mainPage("${mainUrl}/dm170/id/weekly-hot", "Weekly Hot"),
+        mainPage("${mainUrl}/dm273/id/monthly-hot", "Monthly Hot"),
+        mainPage("${mainUrl}/dm817/id/uncensored-leak", "Uncensored Leak"),
+        mainPage("${mainUrl}/dm23/id/english-subtitle", "English Subtitle"),
+        mainPage("${mainUrl}/id/genres/VR", "VR"),
+        mainPage("${mainUrl}/id/genres/3P", "3P"),
+        mainPage("${mainUrl}/id/genres/4K", "4K"),
+        mainPage("${mainUrl}/id/genres/Cowgirl", "Cowgirl"),
+        mainPage("${mainUrl}/id/genres/Drama", "Drama"),
+        mainPage("${mainUrl}/id/genres/Gonzo", "Gonzo"),
+        mainPage("${mainUrl}/id/genres/Mengintip", "Voyeur"),
+        mainPage("${mainUrl}/id/genres/Nampa", "Nampa"),
+        mainPage("${mainUrl}/id/genres/Pelacur", "Slut"),
+        mainPage("${mainUrl}/id/genres/Suami", "Husband"),
+        mainPage("${mainUrl}/id/genres/Terbaik", "Best"),
+        mainPage("${mainUrl}/id/genres/amatir", "Amateur"),
+        mainPage("${mainUrl}/id/genres/fetish", "Fetish"),
+        mainPage("${mainUrl}/id/genres/handjob", "Handjob"),
+        mainPage("${mainUrl}/id/genres/hi-vision", "Hi-Vision"),
+        mainPage("${mainUrl}/id/genres/inses", "Incest"),
+        mainPage("${mainUrl}/id/genres/kakak", "Older Sister"),
+        mainPage("${mainUrl}/id/genres/onani", "Masturbation"),
+        mainPage("${mainUrl}/id/genres/paizuri", "Paizuri"),
+        mainPage("${mainUrl}/id/genres/payudara", "Breasts"),
+        mainPage("${mainUrl}/id/genres/ramping", "Slender"),
+        mainPage("${mainUrl}/id/genres/siswi", "Schoolgirl"),
+        mainPage("${mainUrl}/id/genres/wanita", "Woman"),
+    )
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val items = parseListing(req(mainUrl))
-        return newHomePageResponse(listOf(HomePageList("Latest", items, false)), false)
+        val url = request.data.ifBlank { "${mainUrl}/dm539/id/new" }
+        val items = parseListing(req(url))
+        return newHomePageResponse(listOf(HomePageList(request.name.ifBlank { "Recent Update" }, items, false)), false)
     }
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {

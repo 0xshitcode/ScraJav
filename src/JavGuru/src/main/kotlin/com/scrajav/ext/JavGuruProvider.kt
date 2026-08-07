@@ -15,6 +15,8 @@ import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.toNewSearchResponseList
+import com.lagradost.cloudstream3.mainPage
+import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.StringUtils.encodeUri
 import org.jsoup.Jsoup
@@ -39,9 +41,40 @@ class JavGuruProvider : MainAPI() {
 
     private suspend fun req(url: String) = app.get(url, referer = mainUrl).text
 
+    // Section navigasi + kategori & tag populer dari situs.
+    override val mainPage = mainPageOf(
+        mainPage("$mainUrl/", "Latest"),
+        mainPage("$mainUrl/most-watched-rank/", "Hot"),
+        mainPage("$mainUrl/category/english-subbed/", "Subs"),
+        mainPage("$mainUrl/category/jav/", "JAV"),
+        mainPage("$mainUrl/category/decensored/", "Decensored"),
+        mainPage("$mainUrl/category/amateur/", "Amateur"),
+        mainPage("$mainUrl/category/idol/", "Idol"),
+        mainPage("$mainUrl/category/4k/", "4K"),
+        mainPage("$mainUrl/tag/big-tits/", "Big Tits"),
+        mainPage("$mainUrl/tag/creampie/", "Creampie"),
+        mainPage("$mainUrl/tag/pov/", "POV"),
+        mainPage("$mainUrl/tag/solowork/", "Solowork"),
+        mainPage("$mainUrl/tag/mature/", "Mature"),
+        mainPage("$mainUrl/tag/blowjob/", "Blowjob"),
+        mainPage("$mainUrl/tag/orgy/", "Orgy"),
+        mainPage("$mainUrl/tag/orgasm/", "Orgasm"),
+        mainPage("$mainUrl/tag/squirting/", "Squirting"),
+        mainPage("$mainUrl/tag/slender/", "Slender"),
+        mainPage("$mainUrl/tag/married/", "Married"),
+        mainPage("$mainUrl/tag/anal/", "Anal"),
+        mainPage("$mainUrl/tag/gal/", "Gal"),
+        mainPage("$mainUrl/tag/maid/", "Maid"),
+        mainPage("$mainUrl/tag/female-teacher/", "Female Teacher"),
+        mainPage("$mainUrl/tag/nurse/", "Nurse"),
+        mainPage("$mainUrl/tag/stepmother/", "Stepmother"),
+        mainPage("$mainUrl/tag/incest/", "Incest"),
+    )
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val items = parseListing(req(mainUrl))
-        return newHomePageResponse(listOf(HomePageList("Latest", items, false)), false)
+        val url = request.data.ifBlank { mainUrl }
+        val items = parseListing(req(url))
+        return newHomePageResponse(listOf(HomePageList(request.name.ifBlank { "Latest" }, items, false)), false)
     }
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {
