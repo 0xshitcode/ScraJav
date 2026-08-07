@@ -1,9 +1,9 @@
 [
     {
-        "fileHash": "sha256-e38deff4cbfee23d3f3a913906f003391183fe16ba8602674bced66f952d5136",
+        "fileHash": "sha256-976f3c16509d5d12043b652769086337c0e5c3835bdc12c4fe66ab57af6719ef",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 37985,
+        "fileSize": 40719,
         "status": 3,
         "language": "id",
         "authors": [
@@ -19,10 +19,10 @@
         "name": "Av123"
     },
     {
-        "fileHash": "sha256-e4cbfcccc278f0779d26c667d0f8484560702fb519aea28b408191040e9c75d5",
+        "fileHash": "sha256-92eddad93bd9320ef822533ddcf274360a915edba89657c367cb7028fd03e962",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 32799,
+        "fileSize": 35003,
         "status": 1,
         "language": "id",
         "authors": [
@@ -38,10 +38,10 @@
         "name": "JavBraze"
     },
     {
-        "fileHash": "sha256-d6b4a76316d651cf4e01bd8f5395d7dbac16c1782e21781d355aaebe8e2d1711",
+        "fileHash": "sha256-e8edc6f8b5f4ab627cfef44b09ff3c6ac0a038e4be1e1cf3818a09fa6428c9d6",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 37278,
+        "fileSize": 39444,
         "status": 1,
         "language": "id",
         "authors": [
@@ -57,10 +57,10 @@
         "name": "Javgg"
     },
     {
-        "fileHash": "sha256-85040702c96a3c8403c632b055388e77ed50edcd864fcce2747eb36de901543d",
+        "fileHash": "sha256-7bfbb703995d8293e2bda2707481e19365c814864b3201e3dcad634ce3d7d438",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 44726,
+        "fileSize": 46752,
         "status": 2,
         "language": "id",
         "authors": [
@@ -76,10 +76,10 @@
         "name": "JavGuru"
     },
     {
-        "fileHash": "sha256-94d8fa94f0d36040db495a7d824d47fce4374e6444ba87abbcaf7c442b1f3640",
+        "fileHash": "sha256-7249707e1ddad4f78feb51b02bd9ea9acd23d80cb5aed38103f8d5d38c6c219c",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 32853,
+        "fileSize": 35077,
         "status": 2,
         "language": "id",
         "authors": [
@@ -95,10 +95,10 @@
         "name": "JavHd"
     },
     {
-        "fileHash": "sha256-48047eb9e08f46622aa47fc6813b3db58c88b07ceb6e1928e6ac9be7a4827f5e",
+        "fileHash": "sha256-e01a5ab02ab6e43dfd29b9333e5827df67b28715e2238587f41cd023fa789db8",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 37341,
+        "fileSize": 39507,
         "status": 2,
         "language": "id",
         "authors": [
@@ -114,10 +114,10 @@
         "name": "JavMit"
     },
     {
-        "fileHash": "sha256-3b592ea64bee355dd7d1d791fa31af04e3b96590ae0e262be7a44d98194b652a",
+        "fileHash": "sha256-5c9101fc35c9e2e5742773653090c8fc87246e9aa7744bc2adfb12271a78b686",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 38863,
+        "fileSize": 41018,
         "status": 2,
         "language": "id",
         "authors": [
@@ -133,10 +133,10 @@
         "name": "JavMost"
     },
     {
-        "fileHash": "sha256-7029a76f37c58a8c57ee96e5eaf2468f72b2d1c7e56793b06295a96240a2f2df",
+        "fileHash": "sha256-2a890da3752d3fe1af6b189fee694da1e25cffc297b2cbeb3b5206ba2295c8a1",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 32913,
+        "fileSize": 35116,
         "status": 2,
         "language": "id",
         "authors": [
@@ -152,10 +152,10 @@
         "name": "JavSeen"
     },
     {
-        "fileHash": "sha256-c966a4e9607ce3109df1e28f3ec72ba0da833fdf7743689644c79f1287bf6fa9",
+        "fileHash": "sha256-969bd6023c62a522fc5c69b9337e24860a8154e5c8ecba13cee5a2682c20a043",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 39802,
+        "fileSize": 41974,
         "status": 1,
         "language": "id",
         "authors": [
@@ -171,10 +171,10 @@
         "name": "JavTsunami"
     },
     {
-        "fileHash": "sha256-671bd7bcc5f5bbd75ef7ca66133cdf83dd70aedc68bb373a367540745e2fae72",
+        "fileHash": "sha256-20b4dbef550db6b0765a4a57c7e42d9e3246a0de94f9c2e0e63eabe99ae89de9",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 38187,
+        "fileSize": 40382,
         "status": 3,
         "language": "id",
         "authors": [
@@ -190,10 +190,10 @@
         "name": "Missav"
     },
     {
-        "fileHash": "sha256-edef415e4416d38e4fd7d14b3b0319531143a4880b080447873270b55cfe4795",
+        "fileHash": "sha256-7b389ad96531d3cac2c0357c14fa15419ccfa8897ee5bec75fa15f030f33d0a0",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 41153,
+        "fileSize": 43290,
         "status": 1,
         "language": "id",
         "authors": [
@@ -209,10 +209,10 @@
         "name": "Omgjav"
     },
     {
-        "fileHash": "sha256-f2c18655e340b951de36d38841be13142e23c604ba1cbc4ead92be1b12b317ad",
+        "fileHash": "sha256-32c5158c8f1ef1901672907a56bd35383cfe3a926862f520d996577f064c3f51",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 37366,
+        "fileSize": 39553,
         "status": 2,
         "language": "id",
         "authors": [
@@ -228,10 +228,10 @@
         "name": "Roshy"
     },
     {
-        "fileHash": "sha256-886f358189ba8876a56139bb7dce429fef35ac300200e45f88a6aac6965a15de",
+        "fileHash": "sha256-1eb7459589c486c9b6cb977b6b7ca8fb54c1e2ab94e0c16089eb2d12275c8578",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 37195,
+        "fileSize": 39366,
         "status": 3,
         "language": "id",
         "authors": [
@@ -247,10 +247,10 @@
         "name": "Sextb"
     },
     {
-        "fileHash": "sha256-c577a761bd479984c3d92b511e44b76da7b301cc5c70cb9f0471ba86a8edbe81",
+        "fileHash": "sha256-b1dff042e6fdd1f0ad2a4b334c40f67021a0f5b1c180023f765d477468f5db1c",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/0xshitcode/ScraJav",
-        "fileSize": 39262,
+        "fileSize": 41433,
         "status": 3,
         "language": "id",
         "authors": [
