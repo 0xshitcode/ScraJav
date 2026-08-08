@@ -115,17 +115,16 @@ class JavMitProvider : MainAPI() {
         return found
     }
 
-    private fun parseListing(html: String): List<SearchResponse> {
+    private suspend fun parseListing(html: String): List<SearchResponse> {
         val doc = Jsoup.parse(html, mainUrl)
         val cardRe = Regex("^${Regex.escape(mainUrl)}/[a-z0-9]{2,8}-\\d+")
         return doc.select("a[href]").mapNotNull { a ->
             val abs = a.absUrl("href")
             if (!cardRe.containsMatchIn(abs)) return@mapNotNull null
-            val img = a.selectFirst("img")
             val title = a.attr("title").ifBlank { a.text() }.ifBlank { abs }
+            val code = extractJavCode(abs) ?: extractJavCode(title)
             newMovieSearchResponse(title, abs, TvType.NSFW) {
-                posterUrl = (img?.attr("data-src") ?: img?.attr("src"))
-                    ?.takeUnless { it.startsWith("data:") }
+                posterUrl = listingPoster(code, anchorPoster(a))
             }
         }.distinctBy { it.url }
     }

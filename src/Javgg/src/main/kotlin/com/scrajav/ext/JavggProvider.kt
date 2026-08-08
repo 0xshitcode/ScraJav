@@ -121,17 +121,16 @@ class JavggProvider : MainAPI() {
         return found
     }
 
-    private fun parseListing(html: String): List<SearchResponse> {
+    private suspend fun parseListing(html: String): List<SearchResponse> {
         val doc = Jsoup.parse(html, mainUrl)
         val postRe = Regex("^https?://javgg\\.net/jav/")
         return doc.select("a[href*='/jav/']").mapNotNull { a ->
             val abs = a.absUrl("href")
             if (!postRe.containsMatchIn(abs)) return@mapNotNull null
-            val img = a.selectFirst("img")
             val title = a.attr("title").ifBlank { a.text() }.ifBlank { abs }
+            val code = extractJavCode(abs) ?: extractJavCode(title)
             newMovieSearchResponse(title, abs, TvType.NSFW) {
-                posterUrl = (img?.attr("data-src") ?: img?.attr("src"))
-                    ?.takeUnless { it.startsWith("data:") }
+                posterUrl = listingPoster(code, anchorPoster(a))
             }
         }.distinctBy { it.url }
     }

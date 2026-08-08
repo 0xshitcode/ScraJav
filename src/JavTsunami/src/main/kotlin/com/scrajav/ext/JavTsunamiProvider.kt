@@ -136,16 +136,17 @@ class JavTsunamiProvider : MainAPI() {
         return found
     }
 
-    private fun parseListing(html: String): List<SearchResponse> {
+    private suspend fun parseListing(html: String): List<SearchResponse> {
         val doc = Jsoup.parse(html, mainUrl)
         return doc.select("article").mapNotNull { art ->
             val a = art.selectFirst("a[href]") ?: return@mapNotNull null
             val abs = a.absUrl("href")
             if (abs.isBlank()) return@mapNotNull null
             val title = art.selectFirst("header.entry-header span")?.text() ?: a.text()
-            val poster = art.attr("data-main-thumb").ifBlank { imgPoster(art) }
+            val code = extractJavCode(abs) ?: extractJavCode(title)
+            val local = art.attr("data-main-thumb").ifBlank { imgPoster(art) }
             newMovieSearchResponse(title.ifBlank { abs }, abs, TvType.NSFW) {
-                this.posterUrl = poster
+                this.posterUrl = listingPoster(code, local)
             }
         }.distinctBy { it.url }
     }

@@ -136,16 +136,16 @@ class MissavProvider : MainAPI() {
         return found
     }
 
-    private fun parseListing(html: String): List<SearchResponse> {
+    private suspend fun parseListing(html: String): List<SearchResponse> {
         val doc = Jsoup.parse(html, mainUrl)
         // URL video missav: /dm{n}/id/{kode} (variabel domain + kode)
         return doc.select("a[href]").mapNotNull { a ->
             val abs = a.absUrl("href")
             if (!Regex("/[A-Za-z0-9]{2,10}-\\d+/?$").containsMatchIn(abs)) return@mapNotNull null
-            val img = a.selectFirst("img")
-            newMovieSearchResponse(a.attr("title").ifBlank { a.text() }.ifBlank { abs }, abs, TvType.NSFW) {
-                posterUrl = (img?.attr("data-src") ?: img?.attr("src"))
-                    ?.takeUnless { it.startsWith("data:") }
+            val title = a.attr("title").ifBlank { a.text() }.ifBlank { abs }
+            val code = extractJavCode(abs) ?: extractJavCode(title)
+            newMovieSearchResponse(title, abs, TvType.NSFW) {
+                posterUrl = listingPoster(code, anchorPoster(a))
             }
         }.distinctBy { it.url }
     }

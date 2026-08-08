@@ -120,12 +120,11 @@ open class DefbootBase : MainAPI() {
         return doc.select("a[href]").mapNotNull { a ->
             val abs = a.absUrl("href")
             if (!cardRe.containsMatchIn(abs)) return@mapNotNull null
-            val img = a.selectFirst("img")
-            val title = a.attr("title").ifBlank { img?.attr("alt") }
+            val title = a.attr("title").ifBlank { a.selectFirst("img")?.attr("alt") }
                 ?.ifBlank { a.text() } ?: abs
+            val code = extractJavCode(abs) ?: extractJavCode(title)
             newMovieSearchResponse(title, abs, TvType.NSFW) {
-                posterUrl = (img?.attr("data-src") ?: img?.attr("src"))
-                    ?.takeUnless { it.startsWith("data:") || it.contains("flag") }
+                posterUrl = listingPoster(code, anchorPoster(a))
             }
         }.distinctBy { it.url }
     }

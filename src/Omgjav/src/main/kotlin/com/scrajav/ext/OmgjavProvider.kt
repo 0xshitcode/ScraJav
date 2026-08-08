@@ -143,7 +143,7 @@ class OmgjavProvider : MainAPI() {
         return false
     }
 
-    private fun parseListing(html: String, pageUrl: String): List<SearchResponse> {
+    private suspend fun parseListing(html: String, pageUrl: String): List<SearchResponse> {
         val doc = Jsoup.parse(html, pageUrl)
         val videoLink = Regex("/v/[A-Za-z0-9_-]+/?$")
         return doc.select("a[href*='/v/']").mapNotNull { a ->
@@ -151,10 +151,10 @@ class OmgjavProvider : MainAPI() {
             if (!videoLink.containsMatchIn(href)) return@mapNotNull null
             val abs = a.absUrl("href")
             if (abs.isBlank()) return@mapNotNull null
-            val img = a.selectFirst("img")
             val title = a.attr("title").ifBlank { a.text() }.ifBlank { abs }
+            val code = extractJavCode(abs) ?: extractJavCode(title)
             newMovieSearchResponse(title, abs, TvType.NSFW) {
-                posterUrl = img?.attr("src") ?: img?.attr("data-src")
+                posterUrl = listingPoster(code, anchorPoster(a))
             }
         }.distinctBy { it.url }
     }

@@ -140,18 +140,17 @@ class Av123Provider : MainAPI() {
         return found
     }
 
-    private fun parseListing(html: String): List<SearchResponse> {
+    private suspend fun parseListing(html: String): List<SearchResponse> {
         val doc = Jsoup.parse(html, mainUrl)
         return doc.select("a[href]").mapNotNull { a ->
             val abs = a.absUrl("href")
             if (!Regex("^${Regex.escape(mainUrl)}/en/v/[^/?#]+").containsMatchIn(abs)) {
                 return@mapNotNull null
             }
-            val img = a.selectFirst("img")
             val title = a.attr("title").ifBlank { a.text() }.ifBlank { return@mapNotNull null }
+            val code = extractJavCode(abs) ?: extractJavCode(title)
             newMovieSearchResponse(title, abs, TvType.NSFW) {
-                posterUrl = (img?.attr("data-src") ?: img?.attr("src"))
-                    ?.takeUnless { it.startsWith("data:") }
+                posterUrl = listingPoster(code, anchorPoster(a))
             }
         }.distinctBy { it.url }
     }

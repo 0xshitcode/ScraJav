@@ -443,6 +443,39 @@ object GlobalMetadata {
  * metadata situs**. Bila kode JAV ditemukan dan global punya datanya, field diisi
  * (bahkan menimpa yang sudah diisi situs); bila global kosong, data situs dipertahankan.
  */
+/**
+ * Cari URL poster dari kartu listing. Bila tidak ada <img> di dalam anchor (banyak tema
+ * menaruh poster di luar <a>), naik ke container induk sampai 4 level. Urutan atribut:
+ * `data-src` → `data-lazy-src` → `src`. Hanya URL absolut (http/https) yang dipakai.
+ */
+fun anchorPoster(a: org.jsoup.nodes.Element): String? {
+    var scope: org.jsoup.nodes.Element? = a
+    repeat(4) {
+        scope?.select("img").forEach { img ->
+            val url = img.attr("data-src")
+                .ifBlank { img.attr("data-lazy-src") }
+                .ifBlank { img.attr("src") }
+            if (url.startsWith("http")) return url
+        }
+        scope = scope.parent()
+    }
+    return null
+}
+
+/**
+ * Poster untuk kartu listing: **prioritaskan metadata global (r18.dev → jav.guru)** agar
+ * konsisten dengan thumbnail halaman detail ([enrichGlobal]) dan tidak kena hotlink/CF-block.
+ * [sitePoster] dipakai sebagai fallback bila kode JAV tak dikenal.
+ */
+suspend fun listingPoster(code: String?, sitePoster: String?): String? {
+    if (code != null) {
+        GlobalMetadata.lookup(code)?.posterUrl
+            ?.takeIf { it.startsWith("http") }
+            ?.let { return it }
+    }
+    return sitePoster?.takeIf { it.startsWith("http") }
+}
+
 suspend fun MovieLoadResponse.enrichGlobal() {
     val code = extractJavCode(url) ?: extractJavCode(name) ?: return
     val meta = GlobalMetadata.lookup(code) ?: return
