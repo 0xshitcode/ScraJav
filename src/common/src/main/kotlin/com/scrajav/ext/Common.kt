@@ -451,13 +451,13 @@ object GlobalMetadata {
 fun anchorPoster(a: org.jsoup.nodes.Element): String? {
     var scope: org.jsoup.nodes.Element? = a
     repeat(4) {
-        scope?.select("img").forEach { img ->
+        scope?.select("img")?.forEach { img ->
             val url = img.attr("data-src")
                 .ifBlank { img.attr("data-lazy-src") }
                 .ifBlank { img.attr("src") }
             if (url.startsWith("http")) return url
         }
-        scope = scope.parent()
+        scope = scope?.parent()
     }
     return null
 }

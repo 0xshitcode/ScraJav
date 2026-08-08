@@ -144,8 +144,9 @@ class MissavProvider : MainAPI() {
             if (!Regex("/[A-Za-z0-9]{2,10}-\\d+/?$").containsMatchIn(abs)) return@mapNotNull null
             val title = a.attr("title").ifBlank { a.text() }.ifBlank { abs }
             val code = extractJavCode(abs) ?: extractJavCode(title)
+            val poster = listingPoster(code, anchorPoster(a))
             newMovieSearchResponse(title, abs, TvType.NSFW) {
-                posterUrl = listingPoster(code, anchorPoster(a))
+                posterUrl = poster
             }
         }.distinctBy { it.url }
     }

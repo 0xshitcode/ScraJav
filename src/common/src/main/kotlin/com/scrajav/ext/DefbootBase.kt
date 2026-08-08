@@ -123,8 +123,9 @@ open class DefbootBase : MainAPI() {
             val title = a.attr("title").ifBlank { a.selectFirst("img")?.attr("alt") }
                 ?.ifBlank { a.text() } ?: abs
             val code = extractJavCode(abs) ?: extractJavCode(title)
+            val poster = listingPoster(code, anchorPoster(a))
             newMovieSearchResponse(title, abs, TvType.NSFW) {
-                posterUrl = listingPoster(code, anchorPoster(a))
+                posterUrl = poster
             }
         }.distinctBy { it.url }
     }

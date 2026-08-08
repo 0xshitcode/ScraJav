@@ -145,8 +145,9 @@ class JavTsunamiProvider : MainAPI() {
             val title = art.selectFirst("header.entry-header span")?.text() ?: a.text()
             val code = extractJavCode(abs) ?: extractJavCode(title)
             val local = art.attr("data-main-thumb").ifBlank { imgPoster(art) }
+            val poster = listingPoster(code, local)
             newMovieSearchResponse(title.ifBlank { abs }, abs, TvType.NSFW) {
-                this.posterUrl = listingPoster(code, local)
+                this.posterUrl = poster
             }
         }.distinctBy { it.url }
     }

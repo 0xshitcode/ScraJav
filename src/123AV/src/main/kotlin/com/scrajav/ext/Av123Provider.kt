@@ -149,8 +149,9 @@ class Av123Provider : MainAPI() {
             }
             val title = a.attr("title").ifBlank { a.text() }.ifBlank { return@mapNotNull null }
             val code = extractJavCode(abs) ?: extractJavCode(title)
+            val poster = listingPoster(code, anchorPoster(a))
             newMovieSearchResponse(title, abs, TvType.NSFW) {
-                posterUrl = listingPoster(code, anchorPoster(a))
+                posterUrl = poster
             }
         }.distinctBy { it.url }
     }

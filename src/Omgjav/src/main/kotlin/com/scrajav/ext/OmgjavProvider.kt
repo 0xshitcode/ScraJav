@@ -153,8 +153,9 @@ class OmgjavProvider : MainAPI() {
             if (abs.isBlank()) return@mapNotNull null
             val title = a.attr("title").ifBlank { a.text() }.ifBlank { abs }
             val code = extractJavCode(abs) ?: extractJavCode(title)
+            val poster = listingPoster(code, anchorPoster(a))
             newMovieSearchResponse(title, abs, TvType.NSFW) {
-                posterUrl = listingPoster(code, anchorPoster(a))
+                posterUrl = poster
             }
         }.distinctBy { it.url }
     }
